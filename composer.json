@@ -1,0 +1,50 @@
+{
+  "name": "vatsake/smart-id-v3",
+  "version": "0.9.0",
+  "description": "PHP Client Library for Smart ID v3 API",
+  "keywords": [
+    "php",
+    "smart-id",
+    "api",
+    "client",
+    "authentication"
+  ],
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Vatsake\\SmartIdV3\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Erko Sten Hürges",
+      "email": "erko124@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.1",
+    "php-http/discovery": "^1.20.0",
+    "psr/http-client-implementation": "^1.0.1",
+    "psr/http-factory-implementation": "*",
+    "phpseclib/phpseclib": "~3.0",
+    "psr/log": "^3.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0",
+    "monolog/monolog": "^3.10",
+    "guzzlehttp/guzzle": "^7.10"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Vatsake\\SmartIdV3\\Tests\\": "tests/"
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": false,
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false
+    }
+  }
+}
