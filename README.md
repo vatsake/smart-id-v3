@@ -914,6 +914,7 @@ Run tests with PHPUnit:
 
 ## Todo
 
-- Figure out why mocking doesn't work in demo environment
+- Figure out why mocking doesn't work in DEMO environment
+- Figure out why authentication signature validation fails in DEMO environment
 - Test App2App and Web2App flows
 - More stuff
