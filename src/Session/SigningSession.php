@@ -7,7 +7,7 @@ namespace Vatsake\SmartIdV3\Session;
 use Vatsake\SmartIdV3\Builders\Session\SessionValidatorBuilder;
 use Vatsake\SmartIdV3\Exceptions\SmartIdSession\IncompleteSessionException;
 use Vatsake\SmartIdV3\Factories\SignatureFactory;
-use Vatsake\SmartIdV3\Responses\RawDigestSignature;
+use Vatsake\SmartIdV3\Responses\Signature\RawDigestSignature;
 
 class SigningSession extends BaseSession
 {
@@ -32,7 +32,6 @@ class SigningSession extends BaseSession
      * @throws ProtocolFailureException
      * @throws ExpectedLinkedSessionException
      * @throws ServerErrorException
-     * @see https://phpseclib.com/docs/rsa#rsasignature_pkcs1
      */
     public function validate(): SessionValidatorBuilder
     {

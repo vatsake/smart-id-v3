@@ -24,12 +24,7 @@ class NotificationSigningClient extends ApiClient
         $response = $this->postJson($endpoint, $params);
         $body = json_decode($response->getBody()->getContents(), true);
 
-        return new NotificationSession(
-            $body['sessionID'],
-            '',
-            '',
-            ''
-        );
+        return new NotificationSession($body['sessionID']);
     }
 
     /**
@@ -79,7 +74,6 @@ class NotificationSigningClient extends ApiClient
             $body['sessionID'],
             $req->originalData,
             $req->interactions,
-            $req->initialCallbackUrl ?? ''
         );
     }
 }

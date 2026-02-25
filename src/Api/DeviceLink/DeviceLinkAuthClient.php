@@ -8,14 +8,14 @@ use Vatsake\SmartIdV3\Api\ApiClient;
 use Vatsake\SmartIdV3\Enums\SessionType;
 use Vatsake\SmartIdV3\Features\DeviceLink\DeviceLinkSession;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 
 class DeviceLinkAuthClient extends ApiClient
 {
     /**
      * Start anonymous authentication session with device link flow
      */
-    public function startAnonymous(AuthRequest $req): DeviceLinkSession
+    public function startAnonymous(DeviceLinkAuthRequest $req): DeviceLinkSession
     {
         return $this->startAuth($req, '/authentication/device-link/anonymous');
     }
@@ -23,7 +23,7 @@ class DeviceLinkAuthClient extends ApiClient
     /**
      * Start ETSI authentication session with device link flow
      */
-    public function startEtsi(AuthRequest $req, SemanticsIdentifier $identifier): DeviceLinkSession
+    public function startEtsi(DeviceLinkAuthRequest $req, SemanticsIdentifier $identifier): DeviceLinkSession
     {
         $endpoint = "/authentication/device-link/etsi/{$identifier->formattedString()}";
         return $this->startAuth($req, $endpoint);
@@ -33,13 +33,13 @@ class DeviceLinkAuthClient extends ApiClient
      * Start document-based authentication session with device link flow.
      * 
      */
-    public function startDocument(AuthRequest $req, string $documentNo): DeviceLinkSession
+    public function startDocument(DeviceLinkAuthRequest $req, string $documentNo): DeviceLinkSession
     {
         $endpoint = "/authentication/device-link/document/{$documentNo}";
         return $this->startAuth($req, $endpoint);
     }
 
-    private function startAuth(AuthRequest $req, string $endpoint): DeviceLinkSession
+    private function startAuth(DeviceLinkAuthRequest $req, string $endpoint): DeviceLinkSession
     {
         $params = $this->buildRequestParams($req->toArray());
 

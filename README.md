@@ -40,7 +40,7 @@ use Vatsake\SmartIdV3\SmartId;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 
 // 1. Initialize client
 $config = new SmartIdConfig(
@@ -53,13 +53,13 @@ $smartId = new SmartId($config);
 
 // 2. Create authentication request
 $rpChallenge = RpChallenge::generate();
-$request = AuthRequest::builder()
+$request = DeviceLinkAuthRequest::builder()
     ->withInteractions('Confirm login', 'You are signing into "myapp"')
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->build();
 
 // 3. Start device link authentication
-$session = $smartId->deviceLink()->auth()->startAnonymous($request);
+$session = $smartId->deviceLink()->authentication()->startAnonymous($request);
 
 // 4. Send this to frontend every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -237,7 +237,7 @@ Authenticate a user without requiring them to provide identity information upfro
 ```php
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
@@ -247,7 +247,7 @@ $config = new SmartIdConfig(...);
 $smartId = new SmartId($config);
 
 $rpChallenge = RpChallenge::generate();
-$request = AuthRequest::builder()
+$request = DeviceLinkAuthRequest::builder()
     ->withInteractions(
         'display text up to 60 characters',
         'display text up to 200 characters'
@@ -257,7 +257,7 @@ $request = AuthRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
-$session = $smartId->deviceLink()->auth()->startAnonymous($request);
+$session = $smartId->deviceLink()->authentication()->startAnonymous($request);
 
 $_SESSION['session'] = $session; // Save it for later
 
@@ -277,7 +277,7 @@ Authenticate a specific user by their national identification number. Use when y
 ```php
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
@@ -295,7 +295,7 @@ $identifier = SemanticsIdentifier::builder()
     ->build();
 
 $rpChallenge = RpChallenge::generate();
-$request = AuthRequest::builder()
+$request = DeviceLinkAuthRequest::builder()
     ->withInteractions(
         'display text up to 60 characters',
         'display text up to 200 characters'
@@ -305,7 +305,7 @@ $request = AuthRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
-$session = $smartId->deviceLink()->auth()->startEtsi($request, $identifier);
+$session = $smartId->deviceLink()->authentication()->startEtsi($request, $identifier);
 
 $_SESSION['session'] = $session; // Save it for later
 
@@ -325,7 +325,7 @@ Authenticate a user using their Smart ID document number. Use when you know user
 ```php
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
@@ -335,7 +335,7 @@ $config = new SmartIdConfig(...);
 $smartId = new SmartId($config);
 
 $rpChallenge = RpChallenge::generate();
-$request = AuthRequest::builder()
+$request = DeviceLinkAuthRequest::builder()
     ->withInteractions(
         'display text up to 60 characters',
         'display text up to 200 characters'
@@ -345,7 +345,7 @@ $request = AuthRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
-$session = $smartId->deviceLink()->auth()->startDocument($request, 'PNOEE-40404040009-MOCK-Q');
+$session = $smartId->deviceLink()->authentication()->startDocument($request, 'PNOEE-40404040009-MOCK-Q');
 
 $_SESSION['session'] = $session; // Save it for later
 
@@ -369,8 +369,6 @@ use Vatsake\SmartIdV3\Enums\CertificateLevel;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
-use Vatsake\SmartIdV3\Enums\NaturalIdentityType;
-use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
 use Vatsake\SmartIdV3\Requests\DeviceLinkCertChoiceRequest;
 use Vatsake\SmartIdV3\Requests\LinkedRequest;
 use Vatsake\SmartIdV3\SmartId;
@@ -392,7 +390,7 @@ $_SESSION['session'] = $session; // Save it for later
 $response = $smartId->session($session)
     ->withPolling(1000) // Optional, will poll until session is completed
     ->getCertChoiceSession(10000); // Poll timeout on SMART-ID side
-$_SESSION['documentNo'] = $response->identifier; // Save it for later
+$_SESSION['documentNo'] = $response->documentNumber; // Save it for later
 
 // During status polling, refresh QR-code every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -518,8 +516,7 @@ $session->getDeviceLink(DeviceLinkType::QR);
 
 ```php
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
-use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
@@ -537,7 +534,7 @@ $identifier = SemanticsIdentifier::builder()
     ->build();
 
 $rpChallenge = RpChallenge::generate();
-$request = AuthRequest::builder()
+$request = NotificationAuthRequest::builder()
     ->withInteractions(
         'display text up to 60 characters',
         'display text up to 200 characters'
@@ -546,7 +543,7 @@ $request = AuthRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
-$session = $smartId->notification()->auth()->startEtsi($request, $identifier);
+$session = $smartId->notification()->authentication()->startEtsi($request, $identifier);
 
 $_SESSION['session'] = $session; // Save it for later
 
@@ -562,7 +559,7 @@ Authenticate a user using their Smart ID document number (server-initiated):
 
 ```php
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
@@ -572,7 +569,7 @@ $config = new SmartIdConfig(...);
 $smartId = new SmartId($config);
 
 $rpChallenge = RpChallenge::generate();
-$request = AuthRequest::builder()
+$request = NotificationAuthRequest::builder()
     ->withInteractions(
         'display text up to 60 characters',
         'display text up to 200 characters'
@@ -581,7 +578,7 @@ $request = AuthRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
-$session = $smartId->notification()->auth()->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
+$session = $smartId->notification()->authentication()->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
 
 $_SESSION['session'] = $session; // Save it for later
 
@@ -703,7 +700,7 @@ $_SESSION['session'] = $session; // Save it for later
 $response = $smartId->session($session)
     ->withPolling(1000) // Optional, will poll until session is completed
     ->getCertChoiceSession(10000); // Poll timeout on SMART-ID side
-$_SESSION['documentNo'] = $response->identifier; // Save it for later
+$_SESSION['documentNo'] = $response->documentNumber; // Save it for later
 
 // Step 2: Sign with selected certificate (after successful cert-choice)
 $dataToSign = "hello world";
@@ -716,8 +713,9 @@ $request = NotificationSigningRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $documentNo = $_SESSION['documentNo'];
-$smartId->notification()->signing()->startDocument($request, $documentNo);
+$session = $smartId->notification()->signing()->startDocument($request, $documentNo);
 
 // Get session status
 $response = $smartId->session($session)

@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Session;
 
-use Vatsake\SmartIdV3\Builders\Session\SessionValidatorBuilder;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
+use Vatsake\SmartIdV3\Data\SessionData;
 use Vatsake\SmartIdV3\Enums\InteractionType;
 use Vatsake\SmartIdV3\Enums\SessionEndResult;
 use Vatsake\SmartIdV3\Enums\SessionState;
 use Vatsake\SmartIdV3\Enums\SignatureProtocol;
 use Vatsake\SmartIdV3\Exceptions\SmartIdSession\DocumentUnusableException;
 use Vatsake\SmartIdV3\Exceptions\SmartIdSession\ExpectedLinkedSessionException;
-use Vatsake\SmartIdV3\Exceptions\SmartIdSession\IncompleteSessionException;
 use Vatsake\SmartIdV3\Exceptions\SmartIdSession\ProtocolFailureException;
 use Vatsake\SmartIdV3\Exceptions\SmartIdSession\RequiredInteractionNotSupportedByAppException;
 use Vatsake\SmartIdV3\Exceptions\SmartIdSession\ServerErrorException;
@@ -28,46 +27,62 @@ abstract class BaseSession
 {
     public readonly SessionState $state;
     public readonly SessionEndResult|null $endResult;
-    public readonly string|null $identifier;
+    public readonly string|null $documentNumber;
     public readonly ?Certificate $certificate;
+    public readonly ?array $ignoredProperties;
+    public readonly ?string $deviceIpAddress;
+
+    /**
+     * Only populated for authentication and signing sessions
+     */
     public readonly ?SignatureProtocol $signatureProtocol;
+
+    /**
+     * Only populated for authentication and signing sessions
+     */
     public readonly ?InteractionType $interactionTypeUsed;
 
     public function __construct(
-        string $state,
+        SessionData $sessionData,
         protected SessionContract $session,
         protected SmartIdConfig $config,
-        ?array $result,
-        ?string $signatureProtocol,
-        ?array $signature,
-        ?array $cert,
-        ?string $interactionTypeUsed,
-        public readonly ?string $deviceIp,
-        public readonly ?array $ignoredProperties,
     ) {
-        $this->state = SessionState::from($state);
-        if ($result !== null) {
-            $this->endResult = SessionEndResult::from($result['endResult']);
-            $this->identifier = $result['documentNumber'] ?? null;
+        $this->state = SessionState::from($sessionData->state);
+        $this->deviceIpAddress = $sessionData->deviceIp;
+        $this->ignoredProperties = $sessionData->ignoredProperties;
 
-            if ($this->endResult === SessionEndResult::OK) {
-                $this->certificate = new Certificate(
-                    $cert['value'],
-                    $cert['certificateLevel']
-                );
-                $this->signatureProtocol = SignatureProtocol::tryFrom($signatureProtocol ?? ''); // CertChoice doesn't have this
-                $this->interactionTypeUsed = InteractionType::tryFrom($interactionTypeUsed ?? ''); // CertChoice doesn't have this
-                $this->initializeSignature($signature);
-            }
+        if ($sessionData->result === null) {
+            $this->endResult = null;
+            $this->documentNumber = null;
+            $this->certificate = null;
+            $this->signatureProtocol = null;
+            $this->interactionTypeUsed = null;
+            return;
+        }
+
+        $this->endResult = SessionEndResult::from($sessionData->result['endResult']);
+        $this->documentNumber = $sessionData->result['documentNumber'] ?? null;
+
+        if ($this->endResult === SessionEndResult::OK) {
+            $this->certificate = new Certificate(
+                $sessionData->cert['value'],
+                $sessionData->cert['certificateLevel']
+            );
+            $this->signatureProtocol = SignatureProtocol::tryFrom($sessionData->signatureProtocol ?? '');
+            $this->interactionTypeUsed = InteractionType::tryFrom($sessionData->interactionTypeUsed ?? '');
+            $this->initializeSignature($sessionData->signature);
         }
     }
 
     /**
-     * Initialize signature based on session type. Implemented by subclasses.
+     * Initialize signature based on session type.
      */
     abstract protected function initializeSignature(?array $signature): void;
 
-    protected function isComplete(): bool
+    /**
+     * Checks if the session is complete
+     */
+    public function isComplete(): bool
     {
         return $this->state === SessionState::COMPLETE;
     }
@@ -80,16 +95,25 @@ abstract class BaseSession
         return $this->isComplete() && $this->endResult === SessionEndResult::OK;
     }
 
+    /**
+     * Only populated for signature and authentication sessions
+     */
     public function getSignedData(): string
     {
         return $this->session->getSignedData();
     }
 
+    /**
+     * Only populated for signature and authentication sessions
+     */
     public function getInteractions(): string
     {
         return $this->session->getInteractions();
     }
 
+    /**
+     * Only populated for signature and authentication sessions
+     */
     public function getInitialCallbackUrl(): string
     {
         return $this->session->getInitialCallbackUrl();

@@ -13,7 +13,7 @@ class DeviceLink
 {
     public function __construct(private SmartIdConfig $config) {}
 
-    public function auth(): DeviceLinkAuthClient
+    public function authentication(): DeviceLinkAuthClient
     {
         return new DeviceLinkAuthClient($this->config);
     }

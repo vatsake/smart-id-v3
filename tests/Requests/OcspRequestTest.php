@@ -18,8 +18,8 @@ class OcspRequestTest extends TestCase
         parent::setUp();
 
         // Load test certificates from test-resources
-        $this->subjectCertificate = $this->loadCertificateAsBase64(__DIR__ . '/../../test-resources/TEST_of_SK_ID_Solutions_EID-Q_2024E.pem.crt');
-        $this->issuerCertificate = $this->loadCertificateAsBase64(__DIR__ . '/../../test-resources/TEST_SK_ROOT_G1_2021E.pem.crt');
+        $this->subjectCertificate = $this->loadCertificateAsBase64(__DIR__ . '/../Resources/trusted-mixed-certs/TEST_of_SK_ID_Solutions_EID-Q_2024E.pem.crt');
+        $this->issuerCertificate = $this->loadCertificateAsBase64(__DIR__ . '/../Resources/trusted-mixed-certs/TEST_SK_ROOT_G1_2021E.pem.crt');
     }
 
     private function loadCertificateAsBase64(string $path): string

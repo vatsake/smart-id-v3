@@ -8,6 +8,7 @@ use Vatsake\SmartIdV3\Enums\FlowType;
 use Vatsake\SmartIdV3\Enums\SessionEndResult;
 use Vatsake\SmartIdV3\Enums\SessionState;
 use Vatsake\SmartIdV3\Enums\SignatureProtocol;
+use Vatsake\SmartIdV3\Factories\SessionFactory;
 use Vatsake\SmartIdV3\Session\BaseSession;
 use Vatsake\SmartIdV3\Session\CertificateChoiceSession;
 
@@ -23,18 +24,18 @@ class CertificateChoiceSessionTest extends BaseSessionTestCase
         ?string $deviceIp,
         ?array $ignoredProperties
     ): CertificateChoiceSession {
-        return new CertificateChoiceSession(
-            state: $state,
-            session: $this->sessionContract,
-            config: $this->config,
-            result: $result,
-            signatureProtocol: $signatureProtocol,
-            signature: $signature,
-            cert: $cert,
-            interactionTypeUsed: $interactionTypeUsed,
-            deviceIp: $deviceIp,
-            ignoredProperties: $ignoredProperties
-        );
+        $data = [
+            'state' => $state,
+            'result' => $result,
+            'signatureProtocol' => $signatureProtocol,
+            'signature' => $signature,
+            'cert' => $cert,
+            'interactionTypeUsed' => $interactionTypeUsed,
+            'deviceIpAddress' => $deviceIp,
+            'ignoredProperties' => $ignoredProperties,
+        ];
+
+        return SessionFactory::createCertChoiceSession($data, $this->sessionContract, $this->config);
     }
 
     public function testSessionWithCompleteStateAndOkResult(): void
@@ -61,7 +62,7 @@ class CertificateChoiceSessionTest extends BaseSessionTestCase
         $this->assertSame(SessionState::COMPLETE, $session->state);
         $this->assertTrue($session->isSuccessful());
         $this->assertSame(SessionEndResult::OK, $session->endResult);
-        $this->assertSame('PNOEE-40504040001-DEM0-Q', $session->identifier);
+        $this->assertSame('PNOEE-40504040001-DEM0-Q', $session->documentNumber);
         $this->assertNotNull($session->certificate);
         $this->assertSame(SignatureProtocol::ACSP_V2, $session->signatureProtocol);
     }

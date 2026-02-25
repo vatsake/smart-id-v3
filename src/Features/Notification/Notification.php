@@ -12,7 +12,7 @@ class Notification
 {
     public function __construct(private SmartIdConfig $config) {}
 
-    public function auth(): NotificationAuthClient
+    public function authentication(): NotificationAuthClient
     {
         return new NotificationAuthClient($this->config);
     }

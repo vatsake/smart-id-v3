@@ -10,7 +10,7 @@ use Vatsake\SmartIdV3\Enums\CertificateLevel;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Enums\SignatureAlgorithm;
 use Vatsake\SmartIdV3\Enums\SignatureProtocol;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
 
 /**
  * Tests specific to AuthRequest functionality
@@ -32,14 +32,13 @@ class AuthRequestTest extends TestCase
             'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
         ];
 
-        $request = new AuthRequest($data);
+        $request = new NotificationAuthRequest($data);
 
         $this->assertEquals(SignatureProtocol::ACSP_V2->value, $request->signatureProtocol);
         $this->assertEquals($data['signatureProtocolParameters'], $request->signatureProtocolParameters);
         $this->assertEquals($data['requestProperties'], $request->requestProperties);
         $this->assertEquals($data['interactions'], $request->interactions);
         $this->assertNull($request->certificateLevel);
-        $this->assertNull($request->initialCallbackUrl);
     }
 
     public function testConstructorWithOptionalFields(): void
@@ -53,17 +52,16 @@ class AuthRequestTest extends TestCase
             'initialCallbackUrl' => 'https://example.com/callback',
         ];
 
-        $request = new AuthRequest($data);
+        $request = new NotificationAuthRequest($data);
 
         $this->assertEquals(CertificateLevel::QUALIFIED->value, $request->certificateLevel);
-        $this->assertEquals('https://example.com/callback', $request->initialCallbackUrl);
     }
 
     public function testBuildWithMinimumRequiredFields(): void
     {
         $rpChallenge = base64_encode(random_bytes(64));
 
-        $request = AuthRequest::builder()
+        $request = NotificationAuthRequest::builder()
             ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
             ->withInteractions('Authenticate')
             ->build();
@@ -80,16 +78,14 @@ class AuthRequestTest extends TestCase
     {
         $rpChallenge = base64_encode(random_bytes(64));
 
-        $request = AuthRequest::builder()
+        $request = NotificationAuthRequest::builder()
             ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_512)
             ->withInteractions('Authenticate', 'Confirmation message')
             ->withCertificateLevel(CertificateLevel::ADVANCED)
-            ->withInitialCallbackUrl('https://example.com/callback')
             ->withRequestProperties(true)
             ->build();
 
         $this->assertEquals(CertificateLevel::ADVANCED->value, $request->certificateLevel);
-        $this->assertEquals('https://example.com/callback', $request->initialCallbackUrl);
         $this->assertEquals(['shareMdClientIpAddress' => true], $request->requestProperties);
     }
 
@@ -97,7 +93,7 @@ class AuthRequestTest extends TestCase
     {
         $rpChallenge = base64_encode(random_bytes(64));
 
-        $request = AuthRequest::builder()
+        $request = NotificationAuthRequest::builder()
             ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
             ->withInteractions('Auth')
             ->build();
@@ -109,7 +105,7 @@ class AuthRequestTest extends TestCase
     {
         $rpChallenge = base64_encode(random_bytes(64));
 
-        $request = AuthRequest::builder()
+        $request = NotificationAuthRequest::builder()
             ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
             ->withInteractions('Auth')
             ->build();
@@ -122,7 +118,7 @@ class AuthRequestTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Mandatory parameter 'digest' is not set");
 
-        AuthRequest::builder()
+        NotificationAuthRequest::builder()
             ->withInteractions('Auth')
             ->build();
     }

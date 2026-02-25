@@ -90,12 +90,12 @@ class SessionValidatorBuilder
             $this->logger?->error('Invalid base64 in signature value', ['signature' => $this->session->signature->value]);
             throw new SignatureException('Invalid base64 in signature value');
         }
-
         if ($this->session instanceof SigningSession) {
             $this->validateSigningSessionSignature($signatureValue);
         } elseif ($this->session instanceof AuthSession) {
             $this->validateAuthSessionSignature($signatureValue);
         }
+        $this->logger?->debug('Signature validation successful.');
     }
 
     private function validateSigningSessionSignature(string $signatureValue): void
@@ -145,7 +145,7 @@ class SessionValidatorBuilder
         $pub = $pub->withPadding(RSA::SIGNATURE_PSS)
             ->withHash($this->session->signature->signatureHashAlgorithm->getName())
             ->withMGFHash($this->session->signature->signatureMaskGenHashAlgorithm->getName())
-            ->withSaltLength($this->session->signature->signatureSaltLength);
+            ->withSaltLength($this->session->signature->saltLength);
 
         return $pub->verify($payload, $signatureValue);
     }
@@ -181,6 +181,7 @@ class SessionValidatorBuilder
         } elseif ($this->session instanceof AuthSession) {
             $validator->validateAuthCertificate($pem, $expectedLevel);
         }
+        $this->logger?->debug('SMART-ID certificate validation successful.');
     }
 
     private function validateRevocation(): void
@@ -188,5 +189,6 @@ class SessionValidatorBuilder
         $validator = new RevocationValidator($this->config);
         $pem = $this->session->certificate->valueInBase64;
         $validator->validateCertificateRevocation($pem);
+        $this->logger?->debug('SMART-ID certificate revocation validation successful.');
     }
 }

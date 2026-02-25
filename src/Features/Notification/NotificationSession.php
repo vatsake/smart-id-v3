@@ -10,9 +10,9 @@ class NotificationSession implements SessionContract
 {
     public function __construct(
         private string $sessionId,
-        private string $signedData,
-        private string $interactions,
-        private string $initialCallbackUrl,
+        private string $signedData = '',
+        private string $interactions = '',
+        private string $initialCallbackUrl = '',
     ) {}
 
     public function getSessionId(): string
@@ -30,6 +30,9 @@ class NotificationSession implements SessionContract
         return $this->interactions;
     }
 
+    /**
+     * Only populated for device link flows when using App2App/Web2App flows
+     */
     public function getInitialCallbackUrl(): string
     {
         return $this->initialCallbackUrl;

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Vatsake\SmartIdV3\Responses;
+namespace Vatsake\SmartIdV3\Responses\Signature;
 
 use Vatsake\SmartIdV3\Enums\FlowType;
 
-class CertificateChoiceSignature
+class CertificateChoiceSignature implements SignatureContract
 {
     public readonly FlowType $flowType;
 

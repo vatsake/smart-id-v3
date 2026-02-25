@@ -6,8 +6,8 @@ namespace Vatsake\SmartIdV3\Utils;
 
 class PemFormatter
 {
-    private const string PEM_HEADER = "-----BEGIN CERTIFICATE-----";
-    private const string PEM_FOOTER = "-----END CERTIFICATE-----";
+    private const PEM_HEADER = "-----BEGIN CERTIFICATE-----";
+    private const PEM_FOOTER = "-----END CERTIFICATE-----";
 
     public static function addPemHeaders(string $value): string
     {

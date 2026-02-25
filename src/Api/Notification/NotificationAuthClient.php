@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace Vatsake\SmartIdV3\Api\Notification;
 
 use Vatsake\SmartIdV3\Api\ApiClient;
-use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Features\Notification\NotificationSession;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
 
 class NotificationAuthClient extends ApiClient
 {
-
     /**
      * Start ETSI authentication session with notification flow
      */
-    public function startEtsi(AuthRequest $req, SemanticsIdentifier $identifier): NotificationSession
+    public function startEtsi(NotificationAuthRequest $req, SemanticsIdentifier $identifier): NotificationSession
     {
         $endpoint = "/authentication/notification/etsi/{$identifier->formattedString()}";
         return $this->startAuth($req, $endpoint);
@@ -25,13 +23,13 @@ class NotificationAuthClient extends ApiClient
     /**
      * Start document-based authentication session with notification flow
      */
-    public function startDocument(AuthRequest $req, string $documentNo): NotificationSession
+    public function startDocument(NotificationAuthRequest $req, string $documentNo): NotificationSession
     {
         $endpoint = "/authentication/notification/document/{$documentNo}";
         return $this->startAuth($req, $endpoint);
     }
 
-    private function startAuth(AuthRequest $req, string $endpoint): NotificationSession
+    private function startAuth(NotificationAuthRequest $req, string $endpoint): NotificationSession
     {
         $params = $this->buildRequestParams($req->toArray());
         $params['vcType'] = 'numeric4';

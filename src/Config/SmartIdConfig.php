@@ -14,7 +14,7 @@ use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
  * 1. Auto-separation: certificatePath (mixed certificates)
  * 2. Direct paths: caPath and intPath
  */
-final readonly class SmartIdConfig
+final class SmartIdConfig
 {
     private ClientInterface $httpClient;
 

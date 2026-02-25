@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Vatsake\SmartIdV3\Tests\Session;
 
 use PHPUnit\Framework\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 use Vatsake\SmartIdV3\Builders\Session\SessionValidatorBuilder;
 use Vatsake\SmartIdV3\Session\SigningSession;
-use Vatsake\SmartIdV3\Session\AuthSession;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Exceptions\Validation\SignatureException;
 use Psr\Http\Client\ClientInterface;
@@ -24,21 +22,22 @@ use Vatsake\SmartIdV3\Exceptions\HttpException;
 use Vatsake\SmartIdV3\Features\Notification\NotificationSession;
 use Vatsake\SmartIdV3\Utils\PemFormatter;
 use Vatsake\SmartIdV3\Validators\SmartIdCertificateValidator;
+use Vatsake\SmartIdV3\Factories\SessionFactory;
 
 class SessionValidatorTest extends TestCase
 {
-    private MockObject|SigningSession $session;
+    private SigningSession $session;
     private SmartIdConfig $config;
     private SessionValidatorBuilder $builder;
 
-    private const DEMO_SIGNING_CERTIFICATE_PATH = __DIR__ . '/../resources/PNOEE-40504040001-DEM0-Q.cer';
-    private const DEMO_AUTH_CERTIFICATE_PATH = __DIR__ . '/../resources/PNOEE-40504040001-DEM0-Q-AUTH.cer';
-    private const DEMO_TRUSTED_CERTIFICATES_PATH = __DIR__ . '/../resources/trusted-mixed-certs';
-    private const DEMO_INT_TRUSTED_CERTIFICATES_PATH = __DIR__ . '/../resources/trusted-int-certs';
-    private const DEMO_CA_TRUSTED_CERTIFICATES_PATH = __DIR__ . '/../resources/trusted-ca-certs';
+    private const DEMO_SIGNING_CERTIFICATE_PATH = __DIR__ . '/../Resources/PNOEE-40504040001-DEM0-Q.cer';
+    private const DEMO_AUTH_CERTIFICATE_PATH = __DIR__ . '/../Resources/PNOEE-40504040001-DEM0-Q-AUTH.cer';
+    private const DEMO_TRUSTED_CERTIFICATES_PATH = __DIR__ . '/../Resources/trusted-mixed-certs';
+    private const DEMO_INT_TRUSTED_CERTIFICATES_PATH = __DIR__ . '/../Resources/trusted-int-certs';
+    private const DEMO_CA_TRUSTED_CERTIFICATES_PATH = __DIR__ . '/../Resources/trusted-ca-certs';
     private string $demoX509;
 
-    private static string $bundleDir;
+    private static ?string $bundleDir = null;
 
     // This will clear cache
     public static function setUpBeforeClass(): void
@@ -59,7 +58,6 @@ class SessionValidatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->session = $this->createMock(SigningSession::class);
         $client = $this->createMock(ClientInterface::class);
 
         $this->config = new SmartIdConfig(
@@ -78,16 +76,14 @@ class SessionValidatorTest extends TestCase
             ''
         );
 
-        $this->session->__construct(
-            state: SessionState::COMPLETE->value,
-            session: $notifSession,
-            config: $this->config,
-            result: [
+        $sessionData = [
+            'state' => SessionState::COMPLETE->value,
+            'result' => [
                 'endResult' => SessionEndResult::OK->value,
                 'documentNumber' => '1234567890'
             ],
-            signatureProtocol: SignatureProtocol::RAW_DIGEST_SIGNATURE->value,
-            signature: [
+            'signatureProtocol' => SignatureProtocol::RAW_DIGEST_SIGNATURE->value,
+            'signature' => [
                 'value' => base64_encode(random_bytes(24)),
                 'flowType' => FlowType::QR->value,
                 'signatureAlgorithm' => SignatureAlgorithm::RSASSA_PSS->value,
@@ -103,15 +99,16 @@ class SessionValidatorTest extends TestCase
                     'trailerField' => '0xbc',
                 ]
             ],
-            cert: [
+            'cert' => [
                 'value' => PemFormatter::stripPemHeaders($this->demoX509),
                 'certificateLevel' => 'QUALIFIED'
             ],
-            interactionTypeUsed: InteractionType::CONFIRMATION_MESSAGE->value,
-            deviceIp: null,
-            ignoredProperties: null
-        );
+            'interactionTypeUsed' => InteractionType::CONFIRMATION_MESSAGE->value,
+            'deviceIp' => null,
+            'ignoredProperties' => null
+        ];
 
+        $this->session = SessionFactory::createSigningSession($sessionData, $notifSession, $this->config);
         $this->builder = new SessionValidatorBuilder($this->session, $this->config);
     }
 
@@ -176,8 +173,6 @@ class SessionValidatorTest extends TestCase
 
     public function testValidateAuthSessionSignatureThrowsExceptionWithInvalidSignature(): void
     {
-        $authSession = $this->createMock(AuthSession::class);
-
         $notifSession = new NotificationSession(
             '1',
             'hello world',
@@ -187,16 +182,14 @@ class SessionValidatorTest extends TestCase
 
         $authCert = file_get_contents(self::DEMO_AUTH_CERTIFICATE_PATH);
 
-        $authSession->__construct(
-            state: SessionState::COMPLETE->value,
-            session: $notifSession,
-            config: $this->config,
-            result: [
+        $authSessionData = [
+            'state' => SessionState::COMPLETE->value,
+            'result' => [
                 'endResult' => SessionEndResult::OK->value,
                 'documentNumber' => '1234567890'
             ],
-            signatureProtocol: SignatureProtocol::ACSP_V2->value,
-            signature: [
+            'signatureProtocol' => SignatureProtocol::ACSP_V2->value,
+            'signature' => [
                 'value' => base64_encode(random_bytes(24)),
                 'serverRandom' => 'server-random-value',
                 'userChallenge' => 'user-challenge-value',
@@ -214,14 +207,16 @@ class SessionValidatorTest extends TestCase
                     'trailerField' => '0xbc',
                 ]
             ],
-            cert: [
+            'cert' => [
                 'value' => PemFormatter::stripPemHeaders($authCert),
                 'certificateLevel' => 'QUALIFIED'
             ],
-            interactionTypeUsed: InteractionType::CONFIRMATION_MESSAGE->value,
-            deviceIp: null,
-            ignoredProperties: null
-        );
+            'interactionTypeUsed' => InteractionType::CONFIRMATION_MESSAGE->value,
+            'deviceIp' => null,
+            'ignoredProperties' => null
+        ];
+
+        $authSession = \Vatsake\SmartIdV3\Factories\SessionFactory::createAuthSession($authSessionData, $notifSession, $this->config);
 
         $builder = new SessionValidatorBuilder($authSession, $this->config);
         $builder->withSignatureValidation(true);
@@ -241,8 +236,6 @@ class SessionValidatorTest extends TestCase
 
     public function testValidateAuthSessionCertificate(): void
     {
-        $authSession = $this->createMock(AuthSession::class);
-
         $notifSession = new NotificationSession(
             '1',
             'hello world',
@@ -252,16 +245,14 @@ class SessionValidatorTest extends TestCase
 
         $authCert = file_get_contents(self::DEMO_AUTH_CERTIFICATE_PATH);
 
-        $authSession->__construct(
-            state: SessionState::COMPLETE->value,
-            session: $notifSession,
-            config: $this->config,
-            result: [
+        $authSessionData = [
+            'state' => SessionState::COMPLETE->value,
+            'result' => [
                 'endResult' => SessionEndResult::OK->value,
                 'documentNumber' => '1234567890'
             ],
-            signatureProtocol: SignatureProtocol::ACSP_V2->value,
-            signature: [
+            'signatureProtocol' => SignatureProtocol::ACSP_V2->value,
+            'signature' => [
                 'value' => base64_encode(random_bytes(24)),
                 'serverRandom' => 'server-random-value',
                 'userChallenge' => 'user-challenge-value',
@@ -279,14 +270,16 @@ class SessionValidatorTest extends TestCase
                     'trailerField' => '0xbc',
                 ]
             ],
-            cert: [
+            'cert' => [
                 'value' => PemFormatter::stripPemHeaders($authCert),
                 'certificateLevel' => 'QUALIFIED'
             ],
-            interactionTypeUsed: InteractionType::CONFIRMATION_MESSAGE->value,
-            deviceIp: null,
-            ignoredProperties: null
-        );
+            'interactionTypeUsed' => InteractionType::CONFIRMATION_MESSAGE->value,
+            'deviceIp' => null,
+            'ignoredProperties' => null
+        ];
+
+        $authSession = \Vatsake\SmartIdV3\Factories\SessionFactory::createAuthSession($authSessionData, $notifSession, $this->config);
 
         $builder = new SessionValidatorBuilder($authSession, $this->config);
         $builder->withSignatureValidation(false)->withCertificateValidation();

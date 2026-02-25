@@ -9,6 +9,7 @@ use Vatsake\SmartIdV3\Enums\InteractionType;
 use Vatsake\SmartIdV3\Enums\SessionEndResult;
 use Vatsake\SmartIdV3\Enums\SessionState;
 use Vatsake\SmartIdV3\Enums\SignatureProtocol;
+use Vatsake\SmartIdV3\Factories\SessionFactory;
 use Vatsake\SmartIdV3\Session\SigningSession;
 
 class SigningSessionTest extends BaseSessionTestCase
@@ -23,18 +24,18 @@ class SigningSessionTest extends BaseSessionTestCase
         ?string $deviceIp,
         ?array $ignoredProperties
     ): SigningSession {
-        return new SigningSession(
-            state: $state,
-            session: $this->sessionContract,
-            config: $this->config,
-            result: $result,
-            signatureProtocol: $signatureProtocol,
-            signature: $signature,
-            cert: $cert,
-            interactionTypeUsed: $interactionTypeUsed,
-            deviceIp: $deviceIp,
-            ignoredProperties: $ignoredProperties
-        );
+        $data = [
+            'state' => $state,
+            'result' => $result,
+            'signatureProtocol' => $signatureProtocol,
+            'signature' => $signature,
+            'cert' => $cert,
+            'interactionTypeUsed' => $interactionTypeUsed,
+            'deviceIpAddress' => $deviceIp,
+            'ignoredProperties' => $ignoredProperties,
+        ];
+
+        return SessionFactory::createSigningSession($data, $this->sessionContract, $this->config);
     }
 
     public function testSessionWithCompleteStateAndOkResult(): void
@@ -74,7 +75,7 @@ class SigningSessionTest extends BaseSessionTestCase
         $this->assertSame(SessionState::COMPLETE, $session->state);
         $this->assertTrue($session->isSuccessful());
         $this->assertSame(SessionEndResult::OK, $session->endResult);
-        $this->assertSame('PNOEE-40504040001-DEM0-Q', $session->identifier);
+        $this->assertSame('PNOEE-40504040001-DEM0-Q', $session->documentNumber);
         $this->assertNotNull($session->certificate);
         $this->assertSame(SignatureProtocol::RAW_DIGEST_SIGNATURE, $session->signatureProtocol);
         $this->assertSame(InteractionType::DISPLAY_TEXT_AND_PIN, $session->interactionTypeUsed);

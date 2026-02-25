@@ -7,14 +7,11 @@ namespace Vatsake\SmartIdV3\Tests\Session;
 use PHPUnit\Framework\TestCase;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
-use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Enums\FlowType;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Exceptions\Validation\SignatureException;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
-use Vatsake\SmartIdV3\Requests\MockRequest;
-use Vatsake\SmartIdV3\Responses\AcspV2Signature;
+use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
+use Vatsake\SmartIdV3\Responses\Signature\AcspV2Signature;
 use Vatsake\SmartIdV3\SmartId;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
 use function PHPUnit\Framework\assertEmpty;
@@ -36,7 +33,7 @@ class AuthTest extends TestCase
             baseUrl: SmartIdBaseUrl::DEMO,
             relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
             relyingPartyName: 'DEMO',
-            certificatePath: __DIR__ . '/../resources/trusted-mixed-certs',
+            certificatePath: __DIR__ . '/../Resources/trusted-mixed-certs',
         );
         $this->smartId = new SmartId($this->config);
     }
@@ -44,13 +41,13 @@ class AuthTest extends TestCase
     public function testNotificationAuthRequestDocumentWithPolling()
     {
         $rpChallenge = RpChallenge::generate();
-        $request = AuthRequest::builder()->withInteractions(
+        $request = NotificationAuthRequest::builder()->withInteractions(
             'Test authentication',
             'Test authentication.'
         )->withRpChallenge($rpChallenge, HashAlgorithm::SHA_512)
             ->build();
 
-        $session = $this->smartId->notification()->auth()->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
+        $session = $this->smartId->notification()->authentication()->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
 
         assertNotNull($session->getSessionId());
         assertSame($rpChallenge, $session->getSignedData());
@@ -60,7 +57,7 @@ class AuthTest extends TestCase
         $result = $this->smartId->session($session)->withPolling(1000)->getAuthSession(5000);
         assertTrue($result->isSuccessful());
         assertInstanceOf(AcspV2Signature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate()
@@ -82,13 +79,13 @@ class AuthTest extends TestCase
     {
         $rpChallenge = RpChallenge::generate();
         $identifier = SemanticsIdentifier::fromPersonalNumber('EE', '40504040001');
-        $request = AuthRequest::builder()->withInteractions(
+        $request = NotificationAuthRequest::builder()->withInteractions(
             'Test authentication',
             'Test authentication.'
         )->withRpChallenge($rpChallenge, HashAlgorithm::SHA_512)
             ->build();
 
-        $session = $this->smartId->notification()->auth()->startEtsi($request, $identifier);
+        $session = $this->smartId->notification()->authentication()->startEtsi($request, $identifier);
 
         assertNotNull($session->getSessionId());
         assertSame($rpChallenge, $session->getSignedData());
@@ -98,7 +95,7 @@ class AuthTest extends TestCase
         $result = $this->smartId->session($session)->getAuthSession(60000);
         assertTrue($result->isSuccessful());
         assertInstanceOf(AcspV2Signature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate()
@@ -127,7 +124,7 @@ class AuthTest extends TestCase
         )->withRpChallenge($rpChallenge, HashAlgorithm::SHA_512)
             ->build();
 
-        $session = $this->smartId->deviceLink()->auth()->startDocument($request, 'PNOEE-40404040009-MOCK-Q');
+        $session = $this->smartId->deviceLink()->authentication()->startDocument($request, 'PNOEE-40404040009-MOCK-Q');
 
         $mockReq = MockRequest::builder()->withDocumentNumber('PNOEE-40404040009-MOCK-Q')
             ->withDeviceLink($session->getDeviceLink(DeviceLinkType::QR))
@@ -174,7 +171,7 @@ class AuthTest extends TestCase
         )->withRpChallenge($rpChallenge, HashAlgorithm::SHA_512)
             ->build();
 
-        $session = $this->smartId->deviceLink()->auth()->startEtsi($request, $identifier);
+        $session = $this->smartId->deviceLink()->authentication()->startEtsi($request, $identifier);
 
         $mockReq = MockRequest::builder()->withDocumentNumber('PNOEE-40404040009-MOCK-Q')
             ->withDeviceLink($session->getDeviceLink(DeviceLinkType::QR))

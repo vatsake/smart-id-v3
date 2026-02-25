@@ -12,9 +12,9 @@ use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
 
 class ConfigTest extends TestCase
 {
-    private string $testCertPath = __DIR__ . '/../resources/trusted-mixed-certs';
-    private string $testCaPath = __DIR__ . '/../resources/trusted-ca-certs';
-    private string $testIntPath = __DIR__ . '/../resources/trusted-int-certs';
+    private string $testCertPath = __DIR__ . '/../Resources/trusted-mixed-certs';
+    private string $testCaPath = __DIR__ . '/../Resources/trusted-ca-certs';
+    private string $testIntPath = __DIR__ . '/../Resources/trusted-int-certs';
 
     public function testConstructorWithCertificatePathMode(): void
     {

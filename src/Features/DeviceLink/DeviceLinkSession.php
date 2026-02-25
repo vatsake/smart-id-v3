@@ -109,6 +109,9 @@ class DeviceLinkSession implements SessionContract
         return $this->interactions;
     }
 
+    /**
+     * Only populated for device link flows when using App2App/Web2App flows
+     */
     public function getInitialCallbackUrl(): string
     {
         return $this->initialCallbackUrl;

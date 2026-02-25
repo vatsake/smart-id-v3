@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Requests;
 
-use Vatsake\SmartIdV3\Builders\Request\AuthRequestBuilder;
+use Vatsake\SmartIdV3\Builders\Request\DeviceLinkAuthRequestBuilder;
 use Vatsake\SmartIdV3\Requests\Concerns\ToArray;
 
-class AuthRequest
+class DeviceLinkAuthRequest
 {
     use ToArray;
 
@@ -28,8 +28,8 @@ class AuthRequest
         $this->initialCallbackUrl = $data['initialCallbackUrl'] ?? null;
     }
 
-    public static function builder(): AuthRequestBuilder
+    public static function builder(): DeviceLinkAuthRequestBuilder
     {
-        return new AuthRequestBuilder();
+        return new DeviceLinkAuthRequestBuilder();
     }
 }

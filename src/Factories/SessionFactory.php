@@ -12,6 +12,7 @@ use Vatsake\SmartIdV3\Session\BaseSession;
 use Vatsake\SmartIdV3\Session\CertificateChoiceSession;
 use Vatsake\SmartIdV3\Session\SigningSession;
 use Vatsake\SmartIdV3\Features\SessionContract;
+use Vatsake\SmartIdV3\Data\SessionData;
 
 class SessionFactory
 {
@@ -33,18 +34,8 @@ class SessionFactory
     private static function createTypedSession(array $data, SessionContract $session, SmartIdConfig $config, string $sessionClass): BaseSession
     {
         self::validate($data);
-        return new $sessionClass(
-            state: $data['state'],
-            session: $session,
-            config: $config,
-            result: $data['result'] ?? null,
-            signatureProtocol: $data['signatureProtocol'] ?? null,
-            signature: $data['signature'] ?? null,
-            cert: $data['cert'] ?? null,
-            interactionTypeUsed: $data['interactionTypeUsed'] ?? null,
-            deviceIp: $data['deviceIpAddress'] ?? null,
-            ignoredProperties: $data['ignoredProperties'] ?? null,
-        );
+        $sessionData = SessionData::fromArray($data);
+        return new $sessionClass($sessionData, $session, $config);
     }
 
     private static function validate(array $data): void

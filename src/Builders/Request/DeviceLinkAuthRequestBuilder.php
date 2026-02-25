@@ -9,9 +9,9 @@ use Vatsake\SmartIdV3\Builders\Request\Concerns\Interactions;
 use Vatsake\SmartIdV3\Builders\Request\Concerns\OptionalFields;
 use Vatsake\SmartIdV3\Builders\Request\Concerns\SignatureParameters;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
+use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 
-class AuthRequestBuilder extends RequestBuilder
+class DeviceLinkAuthRequestBuilder extends RequestBuilder
 {
     use Interactions;
     use InitialCallbackUrl;
@@ -59,6 +59,6 @@ class AuthRequestBuilder extends RequestBuilder
 
         $data = $this->addOptionalFields($data, ['certificateLevel', 'initialCallbackUrl']);
 
-        return new AuthRequest($data);
+        return new DeviceLinkAuthRequest($data);
     }
 }

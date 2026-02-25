@@ -22,7 +22,7 @@ use Vatsake\SmartIdV3\Requests\NotificationCertChoiceRequest;
 use Vatsake\SmartIdV3\Requests\NotificationSigningRequest;
 use Vatsake\SmartIdV3\Responses\AcspV2Signature;
 use Vatsake\SmartIdV3\Responses\CertificateChoiceSignature;
-use Vatsake\SmartIdV3\Responses\RawDigestSignature;
+use Vatsake\SmartIdV3\Responses\Signature\RawDigestSignature;
 use Vatsake\SmartIdV3\SmartId;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
 use function PHPUnit\Framework\assertEmpty;
@@ -44,7 +44,7 @@ class SignTest extends TestCase
             baseUrl: SmartIdBaseUrl::DEMO,
             relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
             relyingPartyName: 'DEMO',
-            certificatePath: __DIR__ . '/../resources/trusted-mixed-certs',
+            certificatePath: __DIR__ . '/../Resources/trusted-mixed-certs',
         );
         $this->smartId = new SmartId($this->config);
     }
@@ -69,7 +69,7 @@ class SignTest extends TestCase
         $result = $this->smartId->session($session)->getSigningSession(60000);
         assertTrue($result->isSuccessful());
         assertInstanceOf(RawDigestSignature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate()
@@ -101,7 +101,7 @@ class SignTest extends TestCase
         $result = $this->smartId->session($session)->getSigningSession(60000);
         assertTrue($result->isSuccessful());
         assertInstanceOf(RawDigestSignature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate()
@@ -140,7 +140,7 @@ class SignTest extends TestCase
 
         assertTrue($result->isSuccessful());
         assertInstanceOf(CertificateChoiceSignature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate();
@@ -187,7 +187,7 @@ class SignTest extends TestCase
 
         assertTrue($result->isSuccessful());
         assertInstanceOf(CertificateChoiceSignature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate();

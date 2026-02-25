@@ -36,7 +36,7 @@ abstract class BaseSessionTestCase extends TestCase
         $this->config = new SmartIdConfig(
             relyingPartyUUID: 'test-uuid',
             relyingPartyName: 'test-name',
-            certificatePath: __DIR__ . '/../resources/trusted-mixed-certs'
+            certificatePath: __DIR__ . '/../Resources/trusted-mixed-certs'
         );
 
         $this->sessionContract = $this->createMock(SessionContract::class);
@@ -48,7 +48,7 @@ abstract class BaseSessionTestCase extends TestCase
 
     protected function getCertificateValue(): string
     {
-        $certFile = __DIR__ . '/../resources/PNOEE-40504040001-DEM0-Q.cer';
+        $certFile = __DIR__ . '/../Resources/PNOEE-40504040001-DEM0-Q.cer';
         $certContent = file_get_contents($certFile);
         return PemFormatter::stripPemHeaders($certContent);
     }
@@ -106,7 +106,7 @@ abstract class BaseSessionTestCase extends TestCase
         $this->assertSame(SessionState::COMPLETE, $session->state);
         $this->assertTrue($session->isSuccessful());
         $this->assertSame(SessionEndResult::OK, $session->endResult);
-        $this->assertSame('PNOEE-40504040001-DEM0-Q', $session->identifier);
+        $this->assertSame('PNOEE-40504040001-DEM0-Q', $session->documentNumber);
         $this->assertNotNull($session->certificate);
     }
 
@@ -123,7 +123,7 @@ abstract class BaseSessionTestCase extends TestCase
             ignoredProperties: null
         );
 
-        $this->assertSame('192.168.1.1', $session->deviceIp);
+        $this->assertSame('192.168.1.1', $session->deviceIpAddress);
     }
 
     public function testSessionWithIgnoredProperties(): void
