@@ -226,11 +226,10 @@ Smart ID supports multiple authentication and signature flows depending on your 
 **Device Link Advantages:**
 
 - User controls the flow
-- QR codes can be refreshed during polling
-- Supports [Web2App](https://sk-eid.github.io/smart-id-documentation/rp-api/introduction.html#_about_rp_api_v3) and [App2App](https://sk-eid.github.io/smart-id-documentation/rp-api/introduction.html#_about_rp_api_v3)
+- Supports [Web2App](https://sk-eid.github.io/smart-id-documentation/rp-api/introduction.html#_about_rp_api_v3) and [App2App](https://sk-eid.github.io/smart-id-documentation/rp-api/introduction.html#_about_rp_api_v3) flows
 - Better mobile user experience
 
-#### Anonymous authentication session
+#### Device Link - Anonymous authentication
 
 Authenticate a user without requiring them to provide identity information upfront.
 
@@ -270,7 +269,7 @@ $ses = $smartId->session($session)
 $session->getDeviceLink(DeviceLinkType::QR);
 ```
 
-#### Identified authentication - National ID
+#### Device Link - Identified authentication - National ID
 
 Authenticate a specific user by their national identification number. Use when you know who the user is beforehand.
 
@@ -318,7 +317,7 @@ $ses = $smartId->session($session)
 $session->getDeviceLink(DeviceLinkType::QR);
 ```
 
-#### Identified authentication - Document Number
+#### Device Link - Identified authentication - Document Number
 
 Authenticate a user using their Smart ID document number. Use when you know user's document number.
 
@@ -358,9 +357,7 @@ $ses = $smartId->session($session)
 $session->getDeviceLink(DeviceLinkType::QR);
 ```
 
-#### Signature with Device Link
-
-##### Anonymous signature with certificate selection
+#### Device Link - Anonymous signature with certificate Selection (LINKED session)
 
 Allow user to choose which certificate to use for signing:
 
@@ -417,7 +414,7 @@ $response = $smartId->session($session)
     ->getSigningSession(10000); // Poll timeout on SMART-ID side
 ```
 
-##### Signature with national ID
+#### Device Link - Identified signature - National ID
 
 Sign documents for a specific user identified by national ID:
 
@@ -464,7 +461,7 @@ $ses = $smartId->session($session)
 $session->getDeviceLink(DeviceLinkType::QR);
 ```
 
-##### Signature with document number
+#### Device Link - Identified signature - Document Number
 
 Sign documents for a user identified by document number:
 
@@ -512,7 +509,7 @@ $session->getDeviceLink(DeviceLinkType::QR);
 - Server-initiated, predictable flow
 - No QR code generation or refresh needed
 
-#### Authentication - National ID
+#### Notification - Authentication - National ID
 
 ```php
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
@@ -553,7 +550,7 @@ $ses = $smartId->session($session)
     ->getAuthSession(10000); // Poll timeout on SMART-ID side
 ```
 
-#### Authentication - Document Number
+#### Notification - Authentication - Document Number
 
 Authenticate a user using their Smart ID document number (server-initiated):
 
@@ -588,7 +585,7 @@ $ses = $smartId->session($session)
     ->getAuthSession(10000); // Poll timeout on SMART-ID side
 ```
 
-#### Signature - National ID
+#### Notification - Signature - National ID
 
 Sign documents for a user identified by national ID (server-initiated):
 
@@ -630,7 +627,7 @@ $ses = $smartId->session($session)
     ->getSigningSession(10000); // Poll timeout on SMART-ID side
 ```
 
-#### Signature - Document Number
+#### Notification - Signature - Document Number
 
 Sign documents for a user identified by document number (server-initiated):
 
@@ -664,7 +661,7 @@ $ses = $smartId->session($session)
     ->getSigningSession(10000); // Poll timeout on SMART-ID side
 ```
 
-#### Signature with Certificate Selection - National ID
+#### Notification - Signature with Certificate Selection - National ID
 
 Allow a user to select their certificate before signing. First perform a certificate choice, then sign with the selected certificate:
 
