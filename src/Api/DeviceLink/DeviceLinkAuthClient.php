@@ -31,7 +31,7 @@ class DeviceLinkAuthClient extends ApiClient
 
     /**
      * Start document-based authentication session with device link flow.
-     * 
+     *
      */
     public function startDocument(DeviceLinkAuthRequest $req, string $documentNo): DeviceLinkSession
     {

@@ -33,7 +33,8 @@
   "require-dev": {
     "phpunit/phpunit": "^10.0",
     "monolog/monolog": "^3.10",
-    "guzzlehttp/guzzle": "^7.10"
+    "guzzlehttp/guzzle": "^7.10",
+    "squizlabs/php_codesniffer": "4.x-dev"
   },
   "autoload-dev": {
     "psr-4": {

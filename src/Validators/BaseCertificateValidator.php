@@ -35,7 +35,7 @@ abstract class BaseCertificateValidator
      * Supports two modes:
      * 1. Auto-separation: new Validator(certFolder: '/path/to/mixed-certs')
      * 2. Direct paths: new Validator(caPath: '/path/to/ca-certs', intPath: '/path/to/int-certs')
-     * 
+     *
      * @throws \InvalidArgumentException if invalid parameter combination is provided
      */
     public function __construct(
@@ -185,7 +185,9 @@ abstract class BaseCertificateValidator
     private function isCA(array $parsedCert): bool
     {
         $bc = $parsedCert['extensions']['basicConstraints'] ?? null;
-        if ($bc === null) return false;
+        if ($bc === null) {
+            return false;
+        }
         return stripos($bc, 'CA:TRUE') !== false;
     }
 
@@ -203,7 +205,9 @@ abstract class BaseCertificateValidator
     private function isSelfSigned(OpenSSLCertificate $cert): bool
     {
         $pub = openssl_pkey_get_public($cert);
-        if ($pub === false) return false;
+        if ($pub === false) {
+            return false;
+        }
         return openssl_x509_verify($cert, $pub) === 1;
     }
 
@@ -228,7 +232,7 @@ abstract class BaseCertificateValidator
 
     /**
      * Load and parse certificate from PEM string
-     * 
+     *
      * @throws \RuntimeException if certificate cannot be parsed
      */
     protected function loadCertificate(string $pem): OpenSSLCertificate

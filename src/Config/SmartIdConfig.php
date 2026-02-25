@@ -27,7 +27,6 @@ final class SmartIdConfig
         private ?string $caPath = null,
         private ?string $intPath = null,
         private ?LoggerInterface $logger = null
-
     ) {
         // Validate parameter combinations
         if ($certificatePath !== null && ($caPath !== null || $intPath !== null)) {

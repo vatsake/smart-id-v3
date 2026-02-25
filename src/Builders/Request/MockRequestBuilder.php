@@ -81,7 +81,7 @@ class MockRequestBuilder
      * - documentNumber - use withDocumentNumber()
      * - deviceLink - use withDeviceLink()
      * - flowType - use withFlowType()
-     * 
+     *
      * Mandatory if flowType is Web2App/App2App:
      * - initialCallbackUrl - use withInitialCallbackUrl()
      */

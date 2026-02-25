@@ -10,7 +10,9 @@ use Vatsake\SmartIdV3\Config\SmartIdConfig;
 
 class Notification
 {
-    public function __construct(private SmartIdConfig $config) {}
+    public function __construct(private SmartIdConfig $config)
+    {
+    }
 
     public function authentication(): NotificationAuthClient
     {

@@ -34,7 +34,7 @@ class SessionValidatorBuilder
 
     /**
      * Checks signature validity.
-     * 
+     *
      * Phpseclib supports validation of the following hash algorithms for RSA signatures:
      * - SHA-256
      * - SHA-384

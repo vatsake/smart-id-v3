@@ -7,4 +7,6 @@ use Vatsake\SmartIdV3\Enums\FlowType;
 /**
  * @property FlowType $flowType
  */
-interface SignatureContract {}
+interface SignatureContract
+{
+}

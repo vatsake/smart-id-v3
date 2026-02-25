@@ -15,7 +15,8 @@ class SessionData
         public readonly ?string $interactionTypeUsed = null,
         public readonly ?string $deviceIp = null,
         public readonly ?array $ignoredProperties = null,
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

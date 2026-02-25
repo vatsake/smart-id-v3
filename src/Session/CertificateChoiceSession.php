@@ -19,7 +19,7 @@ class CertificateChoiceSession extends BaseSession
 
     /**
      * Validation builder
-     * 
+     *
      * @throws IncompleteSessionException
      * @throws UserRefusedException
      * @throws SessionTimeoutException

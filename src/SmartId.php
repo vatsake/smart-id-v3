@@ -14,11 +14,13 @@ use Vatsake\SmartIdV3\Responses\Certificate;
 
 class SmartId
 {
-    public function __construct(private SmartIdConfig $config) {}
+    public function __construct(private SmartIdConfig $config)
+    {
+    }
 
     /**
      * Device link flow
-     * 
+     *
      * @see https://sk-eid.github.io/smart-id-documentation/rp-api/device_link_flows.html
      */
     public function deviceLink(): DeviceLink
@@ -28,7 +30,7 @@ class SmartId
 
     /**
      * Notification flow
-     * 
+     *
      * @see https://sk-eid.github.io/smart-id-documentation/rp-api/notification_based_flows.html
      */
     public function notification(): Notification

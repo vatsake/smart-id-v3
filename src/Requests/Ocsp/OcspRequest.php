@@ -8,7 +8,9 @@ use Vatsake\SmartIdV3\Builders\Request\Ocsp\OcspRequestBuilder;
 
 class OcspRequest
 {
-    public function __construct(private string $request) {}
+    public function __construct(private string $request)
+    {
+    }
 
     public static function builder(): OcspRequestBuilder
     {

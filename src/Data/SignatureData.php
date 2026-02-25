@@ -15,7 +15,8 @@ class SignatureData
         public readonly string $signatureMaskGenHashAlgorithm,
         public readonly int $saltLength,
         public readonly string $trailerField,
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

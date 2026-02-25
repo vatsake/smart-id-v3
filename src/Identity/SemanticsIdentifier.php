@@ -13,7 +13,8 @@ class SemanticsIdentifier
         public readonly NaturalIdentityType $type,
         public readonly string $countryCode,
         public readonly string $identifier,
-    ) {}
+    ) {
+    }
 
     public static function builder(): SemanticsIdentifierBuilder
     {

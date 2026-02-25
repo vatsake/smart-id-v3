@@ -36,9 +36,9 @@ abstract class RequestBuilder
         }
     }
 
-    protected abstract function mandatoryParameters(): array;
+    abstract protected function mandatoryParameters(): array;
 
-    protected abstract function validate(): void;
+    abstract protected function validate(): void;
 
-    public abstract function build();
+    abstract public function build();
 }

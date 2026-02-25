@@ -13,7 +13,8 @@ class NotificationSession implements SessionContract
         private string $signedData = '',
         private string $interactions = '',
         private string $initialCallbackUrl = '',
-    ) {}
+    ) {
+    }
 
     public function getSessionId(): string
     {

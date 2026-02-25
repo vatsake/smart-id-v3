@@ -34,7 +34,7 @@ class SmartIdCertificateValidator extends BaseCertificateValidator
      * - certificate validity period
      * - presence of required Smart-ID policy OIDs
      * - key usage and extended key usage for Smart-ID authentication certificates
-     * 
+     *
      * @param string $pem
      * @param CertificateLevel $expectedLevel - expected assurance level (qualified or advanced)
      */
@@ -61,7 +61,7 @@ class SmartIdCertificateValidator extends BaseCertificateValidator
      * - presence of required Smart-ID policy OIDs
      * - key usage and extended key usage for Smart-ID signing certificates
      * - for qualified certificates, presence of QC Compliance statement
-     * 
+     *
      * @param string $pem
      * @param CertificateLevel $expectedLevel - expected assurance level (qualified or advanced)
      */

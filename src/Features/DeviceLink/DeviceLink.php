@@ -11,7 +11,9 @@ use Vatsake\SmartIdV3\Api\DeviceLink\DeviceLinkSigningClient;
 
 class DeviceLink
 {
-    public function __construct(private SmartIdConfig $config) {}
+    public function __construct(private SmartIdConfig $config)
+    {
+    }
 
     public function authentication(): DeviceLinkAuthClient
     {
