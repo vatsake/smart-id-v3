@@ -1,6 +1,6 @@
 {
   "name": "vatsake/smart-id-v3",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "PHP Client Library for Smart ID v3 API",
   "keywords": [
     "php",
