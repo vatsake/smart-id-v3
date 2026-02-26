@@ -34,6 +34,13 @@ class RevocationValidator extends BaseCertificateValidator
         $this->ocspClient = new OcspClient($config);
     }
 
+    /**
+     * @throws CertificateChainException if certificate chain is invalid
+     * @throws OcspCertificateRevocationException if certificate is revoked
+     * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
+     * @throws OcspSignatureException if OCSP response signature is invalid
+     * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
+     */
     public function validateCertificateRevocation(string $pem): void
     {
         $certResource = $this->loadCertificate($pem);

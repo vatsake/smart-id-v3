@@ -119,6 +119,14 @@ abstract class BaseSession
         return $this->session->getInitialCallbackUrl();
     }
 
+    /**
+     * Only populated for device link flows
+     */
+    public function getSessionSecret(): string
+    {
+        return $this->session->getSessionSecret();
+    }
+
     abstract public function validate();
 
     protected function validateEndResult(): void

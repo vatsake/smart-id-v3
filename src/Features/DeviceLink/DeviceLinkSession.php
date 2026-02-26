@@ -46,9 +46,10 @@ class DeviceLinkSession implements SessionContract
 
     private function buildDeviceLink(string $fallbackLang, DeviceLinkType $deviceLinkType): string
     {
+        $isQr = $deviceLinkType === DeviceLinkType::QR;
         $deviceLink = $this->deviceLinkBase . '?'
             . 'deviceLinkType=' . $deviceLinkType->value
-            . '&elapsedSeconds=' . $this->getElapsedSeconds()
+            . ($isQr ? '&elapsedSeconds=' . $this->getElapsedSeconds() : '')
             . '&sessionToken=' . $this->sessionToken
             . '&sessionType=' . $this->sessionType->value
             . '&version=' . self::VERSION
@@ -107,6 +108,11 @@ class DeviceLinkSession implements SessionContract
     public function getInteractions(): string
     {
         return $this->interactions;
+    }
+
+    public function getSessionSecret(): string
+    {
+        return $this->sessionSecret;
     }
 
     /**

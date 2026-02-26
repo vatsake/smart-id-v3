@@ -13,6 +13,7 @@ class NotificationSession implements SessionContract
         private string $signedData = '',
         private string $interactions = '',
         private string $initialCallbackUrl = '',
+        private string $sessionSecret = '',
     ) {
     }
 
@@ -29,6 +30,11 @@ class NotificationSession implements SessionContract
     public function getInteractions(): string
     {
         return $this->interactions;
+    }
+
+    public function getSessionSecret(): string
+    {
+        return $this->sessionSecret;
     }
 
     /**

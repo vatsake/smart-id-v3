@@ -23,7 +23,8 @@ class SemanticsIdentifier
 
     public static function fromString(string $formattedString): SemanticsIdentifier
     {
-        $type = NaturalIdentityType::from(strtoupper(substr($formattedString, 0, 3)));
+        $formattedString = strtoupper($formattedString);
+        $type = NaturalIdentityType::from(substr($formattedString, 0, 3));
         $countryCode = substr($formattedString, 3, 2);
         $identifier = substr($formattedString, 6);
 

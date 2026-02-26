@@ -830,17 +830,20 @@ Exceptions are organized in a hierarchy to help with error handling:
 
 **Validation Exceptions** - Certificate and signature validation failures:
 
-| Exception                            | Description                                                |
-| ------------------------------------ | ---------------------------------------------------------- |
-| `ValidationException`                | Generic validation failure (parent of others below).       |
-| `CertificateChainException`          | Certificate chain validation failed. Not trusted.          |
-| `OcspCertificateRevocationException` | OCSP status indicates certificate is revoked.              |
-| `OcspKeyUsageException`              | OCSP responder certificate missing OCSP signing key usage. |
-| `OcspResponseTimeException`          | OCSP response time outside acceptable clock skew window.   |
-| `OcspSignatureException`             | OCSP response signature validation failed.                 |
-| `CertificateKeyUsageException`       | Certificate key usage validation failed.                   |
-| `CertificatePolicyException`         | Certificate missing required Smart-ID policy OIDs.         |
-| `CertificateQcException`             | Certificate missing required QC statements.                |
+| Exception                                  | Description                                                |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `ValidationException`                      | Generic validation failure (parent of others below).       |
+| `CertificateChainException`                | Certificate chain validation failed. Not trusted.          |
+| `OcspCertificateRevocationException`       | OCSP status indicates certificate is revoked.              |
+| `OcspKeyUsageException`                    | OCSP responder certificate missing OCSP signing key usage. |
+| `OcspResponseTimeException`                | OCSP response time outside acceptable clock skew window.   |
+| `OcspSignatureException`                   | OCSP response signature validation failed.                 |
+| `CertificateKeyUsageException`             | Certificate key usage validation failed.                   |
+| `CertificatePolicyException`               | Certificate missing required Smart-ID policy OIDs.         |
+| `CertificateQcException`                   | Certificate missing required QC statements.                |
+| `InitialCallbackUrlParamMismatchException` | Initial callback URL unique parameter mismatch.            |
+| `SessionSecretMismatchException`           | Session secret mismatch.                                   |
+| `UserChallengeMismatchException`           | User challenge mismatch.                                   |
 
 ### Best Practices
 

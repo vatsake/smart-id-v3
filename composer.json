@@ -41,6 +41,9 @@
       "Vatsake\\SmartIdV3\\Tests\\": "tests/"
     }
   },
+  "scripts": {
+    "test": "phpunit --testdox"
+  },
   "minimum-stability": "dev",
   "prefer-stable": false,
   "config": {

@@ -10,4 +10,5 @@ interface SessionContract
     public function getSignedData(): string;
     public function getInteractions(): string;
     public function getInitialCallbackUrl(): string;
+    public function getSessionSecret(): string;
 }

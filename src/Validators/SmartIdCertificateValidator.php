@@ -37,6 +37,9 @@ class SmartIdCertificateValidator extends BaseCertificateValidator
      *
      * @param string $pem
      * @param CertificateLevel $expectedLevel - expected assurance level (qualified or advanced)
+     * @throws CertificateChainException if certificate chain is invalid
+     * @throws CertificatePolicyException if required policies are missing
+     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
      */
     public function validateAuthCertificate(string $pem, CertificateLevel $expectedLevel = CertificateLevel::ADVANCED): void
     {
@@ -64,6 +67,10 @@ class SmartIdCertificateValidator extends BaseCertificateValidator
      *
      * @param string $pem
      * @param CertificateLevel $expectedLevel - expected assurance level (qualified or advanced)
+     * @throws CertificateChainException if certificate chain is invalid
+     * @throws CertificatePolicyException if required policies are missingCertificatePolicyException
+     * @throws CertificateQcException if QC statements are invalid
+     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
      */
     public function validateSmartIdSigningCertificate(string $pem, CertificateLevel $expectedLevel): void
     {

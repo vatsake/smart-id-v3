@@ -13,15 +13,36 @@ use Vatsake\SmartIdV3\Validators\SmartIdCertificateValidator;
 use Vatsake\SmartIdV3\Validators\RevocationValidator;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\SignatureAlgorithm;
+use Vatsake\SmartIdV3\Exceptions\Validation\InitialCallbackUrlParamMismatchException;
+use Vatsake\SmartIdV3\Exceptions\Validation\SessionSecretMismatchException;
 use Vatsake\SmartIdV3\Exceptions\Validation\SignatureException;
+use Vatsake\SmartIdV3\Exceptions\Validation\UserChallengeMismatchException;
 use Vatsake\SmartIdV3\Exceptions\Validation\ValidationException;
 use Vatsake\SmartIdV3\Utils\PemFormatter;
+use Vatsake\SmartIdV3\Utils\UrlSafe;
 
+/**
+ * Builder for validating Smart ID session responses.
+ *
+ * Provides configurable validation of authentication and signing sessions with support for:
+ * - Signature verification (PKCS#1 v1.5 and PSS padding schemes)
+ * - Certificate chain validation and Smart-ID policy compliance
+ * - Certificate revocation status via OCSP
+ * - Callback URL parameter validation for Web2App and App2App flows
+ *
+ * @see https://sk-eid.github.io/smart-id-documentation/rp-api/response_verification.html
+ */
 class SessionValidatorBuilder
 {
     private bool $validateSignature = true;
     private bool $validateCertificate = false;
     private bool $validateRevocation = false;
+    private bool $validateCallbackUrl = false;
+
+    private string $expectedQueryParamValue;
+    private string $queryParamValue;
+    private string $sessionSecretDigest;
+    private string $userChallengeVerifier;
 
     private ?LoggerInterface $logger = null;
 
@@ -33,13 +54,16 @@ class SessionValidatorBuilder
     }
 
     /**
-     * Checks signature validity.
+     * Verifies that the signature in the session response was properly signed
+     * by the user's certificate. Supports both PKCS#1 v1.5 and RSA-PSS padding
+     * schemes with **SHA-256**, **SHA-384**, and **SHA-512** hash algorithms.
      *
-     * Phpseclib supports validation of the following hash algorithms for RSA signatures:
-     * - SHA-256
-     * - SHA-384
-     * - SHA-512
-     * @see https://phpseclib.com/docs/rsa#rsasignature_pkcs1
+     * For signing sessions: verifies signature against the data to be signed.
+     * For authentication sessions: verifies signature against an ACSP v2 payload.
+     *
+     * @param bool $enabled Enable signature validation (default: true)
+     * @return self
+     * @see https://phpseclib.com/docs/rsa#rsasignature_pkcs1 for limitations
      */
     public function withSignatureValidation(bool $enabled = true): self
     {
@@ -48,7 +72,17 @@ class SessionValidatorBuilder
     }
 
     /**
-     * Checks certificate validity, chain, and compliance with Smart-ID policies.
+     * Certificate validation validates:
+     * - Certificate chain can be traced to a trusted CA
+     * - Certificate contains required Smart-ID policy OIDs
+     * - Certificate has correct key usage and extended key usage
+     * - Certificate contains required QC statements (for qualified signatures)
+     * - Certificate validity period matches current time
+     *
+     * Note: Does not check revocation status. Use withRevocationValidation() for that.
+     *
+     * @param bool $enabled Enable certificate validation (default: false)
+     * @return self
      */
     public function withCertificateValidation(bool $enabled = true): self
     {
@@ -57,7 +91,12 @@ class SessionValidatorBuilder
     }
 
     /**
-     * Checks certificate revocation status using OCSP.
+     * Certificate revocation validation queries OCSP responders to verify the certificate has
+     * not been revoked. OCSP responses include time validation, so system time/date must be
+     * accurate. Includes a reasonable clock skew tolerance (5 minutes).
+     *
+     * @param bool $enabled Enable revocation validation (default: false)
+     * @return self
      */
     public function withRevocationValidation(bool $enabled = true): self
     {
@@ -66,7 +105,111 @@ class SessionValidatorBuilder
     }
 
     /**
-     * @throws ValidationException if validations fail
+     * Validate callback URL parameters directly using raw values.
+     *
+     * Use this method when you have already extracted and decoded the callback URL
+     * query parameters. All parameters must be provided when validation is enabled.
+     *
+     * @param bool $enabled Enable callback URL validation (default: true)
+     * @param null|string $sessionSecretDigest Session secret
+     * @param null|string $userChallengeVerifier User challenge (for auth)
+     * @param null|string $expectedQueryParamValue Expected value of the unique parameter (e.g., from session)
+     * @param null|string $queryParamValue Actual value from callback URL query string
+     * @return self
+     */
+    public function withCallbackUrlValidationParameters(
+        bool $enabled = true,
+        ?string $sessionSecretDigest = null,
+        ?string $userChallengeVerifier = null,
+        ?string $expectedQueryParamValue = null,
+        ?string $queryParamValue = null,
+    ): self {
+        $this->validateCallbackUrl = $enabled;
+
+        if ($enabled) {
+            if (empty($sessionSecretDigest) || empty($userChallengeVerifier)) {
+                throw new ValidationException('Session secret digest and user challenge verifier must be provided for callback URL validation.');
+            }
+            if ($queryParamValue === null || $expectedQueryParamValue === null) {
+                throw new ValidationException('Query parameter value and expected value must be provided for callback URL validation.');
+            }
+            $this->sessionSecretDigest = $sessionSecretDigest;
+            $this->userChallengeVerifier = $userChallengeVerifier;
+            $this->queryParamValue = $queryParamValue;
+            $this->expectedQueryParamValue = $expectedQueryParamValue;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Validate callback URL parameters by providing the full URL.
+     *
+     * Convenience method that parses the callback URL to extract and validate parameters.
+     * Automatically extracts sessionSecretDigest, userChallengeVerifier, and your custom
+     * unique parameter from the query string.
+     *
+     * Use this instead of withCallbackUrlValidationParameters() when you can pass the
+     * full callback URL directly.
+     *
+     * @param bool $enabled Enable callback URL validation
+     * @param null|string $url Full callback URL including query parameters
+     * @param null|string $expectedParamValue Expected value of the unique parameter (e.g., from session)
+     * @param null|string $queryParamName Name of the unique query parameter to extract and validate (e.g., 'uid', 'state')
+     * @return self
+     */
+    public function withCallbackUrlValidation(
+        bool $enabled = true,
+        ?string $url = null,
+        ?string $expectedParamValue = null,
+        ?string $queryParamName = null,
+    ): self {
+        if ($enabled) {
+            if (empty($url) || empty($queryParamName)) {
+                throw new ValidationException('URL and query parameter name must be provided for callback URL validation.');
+            }
+            $params = parse_url($url, PHP_URL_QUERY);
+            parse_str($params, $queryParams);
+
+            if (!isset($queryParams[$queryParamName])) {
+                throw new ValidationException("Query parameter '{$queryParamName}' not found in callback URL.");
+            }
+            if (!isset($queryParams['sessionSecretDigest'])) {
+                throw new ValidationException("Query parameter 'sessionSecretDigest' not found in callback URL.");
+            }
+            if (!isset($queryParams['userChallengeVerifier'])) {
+                throw new ValidationException("Query parameter 'userChallengeVerifier' not found in callback URL.");
+            }
+            if ($expectedParamValue === null) {
+                throw new ValidationException('Expected query parameter value must be provided for callback URL validation.');
+            }
+            $this->withCallbackUrlValidationParameters($enabled, $queryParams['sessionSecretDigest'], $queryParams['userChallengeVerifier'], $expectedParamValue, $queryParams[$queryParamName]);
+        } else {
+            $this->validateCallbackUrl = false;
+        }
+        return $this;
+    }
+
+    /**
+     * Execute all enabled validations.
+     *
+     * All enabled validators must pass or an exception is thrown.
+     * If any validator throws an exception, subsequent validators are not executed.
+     *
+     * @return void
+     * @throws SignatureException if signature verification fails
+     * @throws CertificateChainException if certificate chain validation fails
+     * @throws CertificatePolicyException if required certificate policies are missing
+     * @throws CertificateQcException if QC statements are invalid
+     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
+     * @throws SessionSecretMismatchException if session secret digest doesn't match
+     * @throws InitialCallbackUrlParamMismatchException if callback URL parameter doesn't match
+     * @throws UserChallengeMismatchException if user challenge doesn't match (auth only)
+     * @throws OcspCertificateRevocationException if certificate is revoked
+     * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
+     * @throws OcspSignatureException if OCSP response signature validation fails
+     * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
+     * @throws ValidationException for generic validation failures
      */
     public function check(): void
     {
@@ -78,11 +221,18 @@ class SessionValidatorBuilder
             $this->validateSmartCertificate();
         }
 
+        if ($this->validateCallbackUrl) {
+            $this->validateCallbackUrl();
+        }
+
         if ($this->validateRevocation) {
             $this->validateRevocation();
         }
     }
 
+    /**
+     * @throws SignatureException if signature is invalid or cannot be decoded
+     */
     private function validateSignature(): void
     {
         $signatureValue = base64_decode($this->session->signature->value, true);
@@ -98,6 +248,9 @@ class SessionValidatorBuilder
         $this->logger?->debug('Signature validation successful.');
     }
 
+    /**
+     * @throws SignatureException if signature verification fails
+     */
     private function validateSigningSessionSignature(string $signatureValue): void
     {
         $verified = $this->verifySignature($signatureValue, $this->session->getSignedData());
@@ -108,6 +261,9 @@ class SessionValidatorBuilder
         }
     }
 
+    /**
+     * @throws SignatureException if signature verification fails
+     */
     private function validateAuthSessionSignature(string $signatureValue): void
     {
         $payload = $this->getAcspV2Payload();
@@ -119,9 +275,6 @@ class SessionValidatorBuilder
         }
     }
 
-    /**
-     * Verifies a signature using the appropriate algorithm (PSS or PKCS1)
-     */
     private function verifySignature(string $signatureValue, string $payload): bool
     {
         if ($this->session->signature->signatureAlgorithm === SignatureAlgorithm::RSASSA_PSS) {
@@ -150,6 +303,12 @@ class SessionValidatorBuilder
         return $pub->verify($payload, $signatureValue);
     }
 
+    /**
+     * Build the ACSP v2 payload that was signed during authentication.
+     *
+     * @return string The ACSP v2 payload
+     * @see https://sk-eid.github.io/smart-id-documentation/rp-api/signature_protocols.html#acsp_v2_digest_calculation
+     */
     private function getAcspV2Payload(): string
     {
         $interactionsHash = base64_encode(hash('sha256', $this->session->getInteractions(), true));
@@ -169,6 +328,12 @@ class SessionValidatorBuilder
         ]);
     }
 
+    /**
+     * @throws CertificateChainException if certificate chain is invalid
+     * @throws CertificatePolicyException if required policies are missing
+     * @throws CertificateQcException if QC statements are invalid
+     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
+     */
     private function validateSmartCertificate(): void
     {
         $validator =  new SmartIdCertificateValidator($this->config);
@@ -184,11 +349,78 @@ class SessionValidatorBuilder
         $this->logger?->debug('SMART-ID certificate validation successful.');
     }
 
+    /**
+     * @throws CertificateChainException if certificate chain is invalid
+     * @throws OcspCertificateRevocationException if certificate is revoked
+     * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
+     * @throws OcspSignatureException if OCSP response signature is invalid
+     * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
+     */
     private function validateRevocation(): void
     {
         $validator = new RevocationValidator($this->config);
         $pem = $this->session->certificate->valueInBase64;
         $validator->validateCertificateRevocation($pem);
         $this->logger?->debug('SMART-ID certificate revocation validation successful.');
+    }
+
+    /**
+     * @throws SessionSecretMismatchException if session secret doesn't match
+     * @throws InitialCallbackUrlParamMismatchException if parameter value doesn't match
+     * @throws UserChallengeMismatchException if user challenge doesn't match (auth only)
+     * @see https://sk-eid.github.io/smart-id-documentation/rp-api/callback_urls.html
+     */
+    private function validateCallbackUrl()
+    {
+        $this->validateSessionSecret();
+        $this->validateCallbackQueryParam();
+        if ($this->session instanceof AuthSession) {
+            $this->validateUserChallenge();
+        }
+    }
+
+    /**
+     * @throws SessionSecretMismatchException if digest doesn't match
+     */
+    private function validateSessionSecret()
+    {
+        $secret = base64_decode($this->session->getSessionSecret());
+        $hash = hash('sha256', $secret, true);
+        $urlSafeHash = UrlSafe::toUrlSafe(base64_encode($hash));
+
+        if ($urlSafeHash !== $this->sessionSecretDigest) {
+            $this->logger?->debug('Session secret digest validation failed', ['expected' => $this->sessionSecretDigest, 'actual' => $urlSafeHash]);
+            throw new SessionSecretMismatchException();
+        }
+
+        $this->logger?->debug('Session secret digest validation successful.');
+    }
+
+    /**
+     * @throws InitialCallbackUrlParamMismatchException if parameter value doesn't match
+     */
+    private function validateCallbackQueryParam()
+    {
+        if ($this->expectedQueryParamValue !== $this->queryParamValue) {
+            $this->logger?->debug('Callback URL query parameter validation failed', ['expected' => $this->expectedQueryParamValue, 'actual' => $this->queryParamValue]);
+            throw new InitialCallbackUrlParamMismatchException();
+        }
+        $this->logger?->debug('Callback URL query parameter validation successful.');
+    }
+
+    /**
+     * @throws UserChallengeMismatchException if challenge hash doesn't match
+     */
+    private function validateUserChallenge()
+    {
+        $userChallenge = $this->session->signature->userChallenge;
+        $challengeHash = hash('sha256', $this->userChallengeVerifier, true);
+        $urlSafeChallengeHash = UrlSafe::toUrlSafe(base64_encode($challengeHash));
+
+        if ($userChallenge !== $urlSafeChallengeHash) {
+            $this->logger?->debug('User challenge verifier validation failed', ['expected' => $userChallenge, 'actual' => $urlSafeChallengeHash]);
+            throw new UserChallengeMismatchException();
+        }
+        $this->logger?->debug('User challenge verifier validation successful.');
     }
 }

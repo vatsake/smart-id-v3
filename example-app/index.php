@@ -21,6 +21,14 @@
             padding: 20px;
         }
 
+        body.mobile .hide-on-mobile {
+            display: none;
+        }
+
+        body:not(.mobile) .hide-on-desktop {
+            display: none;
+        }
+
         .container {
             background: white;
             border: 1px solid #e0e0e0;
@@ -206,14 +214,14 @@
                 <div class="category">
                     <div class="category-title">Device Link</div>
                     <div class="sub-options">
-                        <button class="option-btn" onclick="selectAction('device_link_sign')">Sign</button>
+                        <button class="option-btn" onclick="selectAction('device_link_sign')">Sign <b class="hide-on-desktop">(Doesn't work on mobile)</b></button>
                         <button class="option-btn" onclick="selectAction('device_link_auth')">Authenticate</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ID Code Input View -->
+        <!-- ID Code Input -->
         <div id="idInputView" class="view id-input-view">
             <h1>Enter Your ID Code</h1>
             <div class="action-label" id="idActionLabel"></div>
@@ -226,7 +234,7 @@
             <button class="back-btn" onclick="goBack()">← Go Back</button>
         </div>
 
-        <!-- QR Code View -->
+        <!-- QR -->
         <div id="qrView" class="view qr-view">
             <h1 id="qrViewTitle">Scan with Smart ID App</h1>
             <div class="action-label" id="actionLabel"></div>
@@ -248,6 +256,50 @@
         let statusPollTimeout = null;
         let semIdentifier = null;
 
+
+
+        $(document).ready(function() {
+            const queryParams = getQueryParams();
+            const hasResults = queryParams.action && (queryParams.signer || queryParams.endResult !== undefined);
+
+            $('body').toggleClass('mobile', isMobile());
+
+            if (hasResults) {
+                // User was redirected back with callback results
+                displayResults(queryParams);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
+        function displayResults(params) {
+            currentAction = params.action;
+            done = true;
+
+            $('#actionLabel').text(getActionLabel(currentAction));
+            $('#qrcode').hide();
+            showView('qrView');
+
+            if (params.signer) {
+                $('#signed-by').html('Signed by: <b>' + decodeURIComponent(params.signer) + '</b>');
+            }
+            if (params.endResult) {
+                $('#end-result').html('End result: <b>' + decodeURIComponent(params.endResult) + '</b>');
+            }
+            if (params.verificationResult !== undefined) {
+                const verResult = params.verificationResult === 'true';
+                $('#verification-result').html('Verification: <b>' + (verResult ? 'Successful' : 'Failed') + '</b>');
+            }
+        }
+
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const allParams = {};
+            params.forEach((value, key) => {
+                allParams[key] = value;
+            });
+            return allParams;
+        }
+
         function showView(viewId) {
             $('.view').removeClass('active');
             $('#' + viewId).addClass('active');
@@ -263,38 +315,45 @@
             return labels[action];
         }
 
+        function isMobile() {
+            const ua = navigator.userAgent
+            return /mobi|iphone|ipod|android.*mobile/.test(ua) || 'ontouchend' in document;
+        }
+
         function selectAction(action) {
             currentAction = action;
             done = false;
             semIdentifier = null;
 
-            // For notification flows, show ID input first
             if (action.startsWith('notification')) {
+                // Show ID input for notification flows
                 $('#idActionLabel').text(getActionLabel(action));
                 $('#semIdentifierInput').val('');
                 showView('idInputView');
             } else {
-                // For device link flows, go straight to QR view
+                // Show QR view for device link flows
+                initializeQRCode();
                 $('#actionLabel').text(getActionLabel(action));
-
-                if (!qrcode) {
-                    qrcode = new QRCode("qrcode", {
-                        width: 512,
-                        height: 512,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.L
-                    });
-                } else {
-                    qrcode.clear();
-                }
-                $('#qrcode').show();
                 $('#qrViewTitle').text('Scan with Smart ID App');
                 showView('qrView');
 
-                // Start session for device link
                 startSession(action);
             }
+        }
+
+        function initializeQRCode() {
+            if (!qrcode) {
+                qrcode = new QRCode("qrcode", {
+                    width: 512,
+                    height: 512,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            } else {
+                qrcode.clear();
+            }
+            $('#qrcode').show();
         }
 
         function submitIdCode() {
@@ -306,23 +365,27 @@
             }
 
             semIdentifier = idCode;
+            showNotificationWaitView();
+            startSession(currentAction);
+        }
 
-            // Update view for notification flow
+        function showNotificationWaitView() {
             $('#actionLabel').text(getActionLabel(currentAction));
             $('#qrcode').hide();
             $('#qrViewTitle').text('Check Your Phone');
             showView('qrView');
-
-            // Start session with ID code
-            startSession(currentAction);
         }
 
         function goBack() {
             done = true;
-            currentAction = null;
-            semIdentifier = null;
+            cancelAllRequests();
+            clearAllTimeouts();
+            cleanupQRCode();
+            resetUIState();
+            showView('selectionView');
+        }
 
-            // Abort any ongoing AJAX requests
+        function cancelAllRequests() {
             if (qrPollRequest) {
                 qrPollRequest.abort();
                 qrPollRequest = null;
@@ -331,8 +394,9 @@
                 statusPollRequest.abort();
                 statusPollRequest = null;
             }
+        }
 
-            // Clear any pending timeouts
+        function clearAllTimeouts() {
             if (qrPollTimeout) {
                 clearTimeout(qrPollTimeout);
                 qrPollTimeout = null;
@@ -341,21 +405,33 @@
                 clearTimeout(statusPollTimeout);
                 statusPollTimeout = null;
             }
+        }
 
+        function cleanupQRCode() {
             if (qrcode) {
                 qrcode.clear();
             }
+        }
+
+        function resetUIState() {
+            currentAction = null;
+            semIdentifier = null;
             $('#semIdentifierInput').val('');
             $('#signed-by').text('');
             $('#end-result').text('');
             $('#verification-result').text('');
-            showView('selectionView');
         }
 
         function startSession(action) {
             let url = '/start-session.php?action=' + action;
+
             if (semIdentifier) {
                 url += '&semIdentifier=' + encodeURIComponent(semIdentifier);
+            }
+
+            // Add QR flag for device link flows
+            if (action.startsWith('device_link')) {
+                url += '&qr=' + !isMobile();
             }
 
             $.ajax({
@@ -363,17 +439,29 @@
                 method: 'GET',
                 contentType: 'application/json',
                 success: function(response) {
-                    // Only poll QR code for device link flows
-                    if (action.startsWith('device_link')) {
-                        startQrPolling(action);
-                    }
-                    startStatusPolling();
+                    handleSessionStart(response, action);
                 },
                 error: function(error) {
-                    alert(error.responseText)
+                    alert(error.responseText);
                     goBack();
                 }
             });
+        }
+
+        function handleSessionStart(response, action) {
+            // For device link flows on mobile, redirect to device link
+            if (action.startsWith('device_link') && isMobile()) {
+                const resp = typeof response === 'string' ? JSON.parse(response) : response;
+                window.location.href = resp.link;
+                return;
+            }
+
+            // Start polling for device link QR or notification flows
+            if (action.startsWith('device_link')) {
+                startQrPolling(action);
+            }
+
+            startStatusPolling();
         }
 
         function startQrPolling(action) {
@@ -384,20 +472,19 @@
                 method: 'GET',
                 contentType: 'application/json',
                 success: function(response) {
-                    let resp = (typeof response === 'string') ? JSON.parse(response) : response;
+                    const resp = typeof response === 'string' ? JSON.parse(response) : response;
                     qrcode.makeCode(resp.link);
+
                     if (!done) {
-                        qrPollTimeout = setTimeout(function() {
+                        qrPollTimeout = setTimeout(() => {
                             qrcode.clear();
                             startQrPolling(action);
                         }, 1000);
                     }
                 },
                 error: function(error) {
-                    if (error.statusText === 'abort') {
-                        return; // Request was cancelled, do nothing
-                    }
-                    alert(error.responseText)
+                    if (error.statusText === 'abort') return;
+                    alert(error.responseText);
                     goBack();
                 }
             });
@@ -406,30 +493,48 @@
         function startStatusPolling() {
             if (done) return;
 
+            let url = '/status.php';
+            const queryParams = getQueryParams();
+            const queryString = Object.keys(queryParams)
+                .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(queryParams[key]))
+                .join('&');
+
+            if (queryString) {
+                url += '?' + queryString;
+            }
+
             statusPollRequest = $.ajax({
-                url: '/status.php',
+                url: url,
                 method: 'GET',
                 contentType: 'application/json',
                 success: function(response) {
-                    let resp = (typeof response === 'string') ? JSON.parse(response) : response;
+                    const resp = typeof response === 'string' ? JSON.parse(response) : response;
+
                     if (resp.state === 'COMPLETE') {
                         done = true;
-                        if (resp.signer) $('#signed-by').html('Signed by: <b>' + resp.signer + '</b>');
-                        if (resp.endResult) $('#end-result').html('End result: <b>' + resp.endResult + '</b>');
-                        if (resp.verificationResult !== null) $('#verification-result').html('Verification: <b>' + (resp.verificationResult ? 'Successful' : 'Failed') + '</b>');
-                        else $('#verification-result').html('');
+                        showResults(resp);
                     } else if (!done) {
-                        startStatusPolling();
+                        statusPollTimeout = setTimeout(startStatusPolling, 1000);
                     }
                 },
                 error: function(error) {
-                    if (error.statusText === 'abort') {
-                        return; // Request was cancelled, do nothing
-                    }
-                    alert(error.responseText)
+                    if (error.statusText === 'abort') return;
+                    alert(error.responseText);
                     goBack();
                 }
             });
+        }
+
+        function showResults(resp) {
+            if (resp.signer) {
+                $('#signed-by').html('Signed by: <b>' + resp.signer + '</b>');
+            }
+            if (resp.endResult) {
+                $('#end-result').html('End result: <b>' + resp.endResult + '</b>');
+            }
+            if (resp.verificationResult !== null) {
+                $('#verification-result').html('Verification: <b>' + (resp.verificationResult ? 'Successful' : 'Failed') + '</b>');
+            }
         }
     </script>
 
