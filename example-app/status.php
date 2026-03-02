@@ -70,7 +70,8 @@ function getSessionResponse(SmartId $smartClient, mixed $session, string $action
 
 function handleDeviceLinkSign(SmartId $smartClient, mixed $session): mixed
 {
-    $res = $smartClient->session($session)->getCertChoiceSession(10000);
+    // User won't get redirected back until signing is complete. So we keep polling the cert choice session until it's complete, then start the signing session with the obtained document number.
+    $res = $smartClient->session($session)->withPolling(500)->getCertChoiceSession(10000);
 
     if (!$res->isComplete() || !$res->isSuccessful()) {
         return $res;

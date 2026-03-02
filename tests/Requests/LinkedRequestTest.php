@@ -27,11 +27,11 @@ class LinkedRequestTest extends TestCase
             ],
             'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
             'requestProperties' => ['shareMdClientIpAddress' => false],
-            'linkedSessionId' => 'session-123',
+            'linkedSessionID' => 'session-123',
             'originalData' => 'original data',
         ];
 
-        $request = new LinkedRequest($data);
+        $request = LinkedRequest::fromArray($data);
 
         $this->assertEquals(SignatureProtocol::RAW_DIGEST_SIGNATURE->value, $request->signatureProtocol);
         $this->assertEquals($data['signatureProtocolParameters'], $request->signatureProtocolParameters);
@@ -49,14 +49,14 @@ class LinkedRequestTest extends TestCase
             'signatureProtocol' => SignatureProtocol::RAW_DIGEST_SIGNATURE->value,
             'signatureProtocolParameters' => ['digest' => 'test'],
             'requestProperties' => ['shareMdClientIpAddress' => true],
-            'linkedSessionId' => 'session-456',
+            'linkedSessionID' => 'session-456',
             'originalData' => 'data',
             'certificateLevel' => CertificateLevel::QUALIFIED->value,
             'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
             'initialCallbackUrl' => 'https://example.com/callback',
         ];
 
-        $request = new LinkedRequest($data);
+        $request = LinkedRequest::fromArray($data);
 
         $this->assertEquals(CertificateLevel::QUALIFIED->value, $request->certificateLevel);
         $this->assertEquals('https://example.com/callback', $request->initialCallbackUrl);

@@ -6,7 +6,6 @@ namespace Vatsake\SmartIdV3\Api\DeviceLink;
 
 use Http\Discovery\Psr18Client;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\Api\ApiClient;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Requests\MockRequest;
@@ -14,13 +13,11 @@ use Vatsake\SmartIdV3\Requests\MockRequest;
 class DeviceLinkMockClient extends ApiClient
 {
     protected Psr18Client $client;
-    private ?LoggerInterface $logger;
 
     public function __construct(protected SmartIdConfig $config)
     {
         parent::__construct($config);
         $this->client = new Psr18Client($config->getHttpClient());
-        $this->logger = $config->getLogger();
     }
 
     /**

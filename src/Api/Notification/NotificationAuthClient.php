@@ -7,7 +7,10 @@ namespace Vatsake\SmartIdV3\Api\Notification;
 use Vatsake\SmartIdV3\Api\ApiClient;
 use Vatsake\SmartIdV3\Features\Notification\NotificationSession;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
+use Vatsake\SmartIdV3\Requests\Contracts\NotificationRequest;
 use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
+use Vatsake\SmartIdV3\Responses\NotificationResponse;
+use Vatsake\SmartIdV3\Utils\VcCode;
 
 class NotificationAuthClient extends ApiClient
 {
@@ -29,19 +32,21 @@ class NotificationAuthClient extends ApiClient
         return $this->startAuth($req, $endpoint);
     }
 
-    private function startAuth(NotificationAuthRequest $req, string $endpoint): NotificationSession
+    private function startAuth(NotificationRequest $req, string $endpoint): NotificationSession
     {
         $params = $this->buildRequestParams($req->toArray());
-        $params['vcType'] = 'numeric4';
 
         $response = $this->postJson($endpoint, $params);
         $body = json_decode($response->getBody()->getContents(), true);
 
-        return new NotificationSession(
-            $body['sessionID'],
-            $req->signatureProtocolParameters['rpChallenge'],
-            $req->interactions,
-            $req->initialCallbackUrl ?? ''
-        );
+        // Auth responses don't include vc, so we generate it from the signed data
+        $body['vc'] = [
+            'type' => 'numeric4',
+            'value' => VcCode::fromRpChallenge($req->getSignedData()),
+        ];
+
+        $response = NotificationResponse::fromArray($body);
+
+        return new NotificationSession($req, $response);
     }
 }

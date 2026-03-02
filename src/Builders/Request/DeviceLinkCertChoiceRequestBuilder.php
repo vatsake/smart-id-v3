@@ -41,6 +41,6 @@ class DeviceLinkCertChoiceRequestBuilder extends RequestBuilder
             'initialCallbackUrl',
         ]);
 
-        return new DeviceLinkCertChoiceRequest($data);
+        return DeviceLinkCertChoiceRequest::fromArray($data);
     }
 }

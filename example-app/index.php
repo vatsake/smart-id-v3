@@ -197,6 +197,32 @@
             border-color: #e0e0e0;
             cursor: not-allowed;
         }
+
+        /* Verification Code Styles */
+        .verification-code {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .vc-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+
+        .vc-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: #000;
+            letter-spacing: 4px;
+            font-family: 'Courier New', monospace;
+        }
     </style>
 </head>
 
@@ -239,6 +265,12 @@
             <h1 id="qrViewTitle">Scan with Smart ID App</h1>
             <div class="action-label" id="actionLabel"></div>
             <div id="qrcode"></div>
+            <div id="verification-code-container" style="display: none;">
+                <div class="verification-code">
+                    <div class="vc-label">Verification Code</div>
+                    <div class="vc-value" id="vcDisplay"></div>
+                </div>
+            </div>
             <div id="signed-by"></div>
             <div id="end-result"></div>
             <div id="verification-result"></div>
@@ -420,6 +452,8 @@
             $('#signed-by').text('');
             $('#end-result').text('');
             $('#verification-result').text('');
+            $('#verification-code-container').hide();
+            $('#vcDisplay').text('');
         }
 
         function startSession(action) {
@@ -449,6 +483,8 @@
         }
 
         function handleSessionStart(response, action) {
+            startStatusPolling();
+
             // For device link flows on mobile, redirect to device link
             if (action.startsWith('device_link') && isMobile()) {
                 const resp = typeof response === 'string' ? JSON.parse(response) : response;
@@ -456,12 +492,19 @@
                 return;
             }
 
+            // Display verification code for notification flows
+            if (action.startsWith('notification')) {
+                const resp = typeof response === 'string' ? JSON.parse(response) : response;
+                if (resp.vc) {
+                    $('#vcDisplay').text(resp.vc);
+                    $('#verification-code-container').show();
+                }
+            }
+
             // Start polling for device link QR or notification flows
             if (action.startsWith('device_link')) {
                 startQrPolling(action);
             }
-
-            startStatusPolling();
         }
 
         function startQrPolling(action) {
@@ -511,6 +554,7 @@
                     const resp = typeof response === 'string' ? JSON.parse(response) : response;
 
                     if (resp.state === 'COMPLETE') {
+                        $('#verification-code-container').hide();
                         done = true;
                         showResults(resp);
                     } else if (!done) {

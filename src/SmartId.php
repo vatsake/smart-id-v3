@@ -6,16 +6,19 @@ namespace Vatsake\SmartIdV3;
 
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Api\SessionClient;
-use Vatsake\SmartIdV3\Api\CertificateClient;
 use Vatsake\SmartIdV3\Features\DeviceLink\DeviceLink;
 use Vatsake\SmartIdV3\Features\Notification\Notification;
 use Vatsake\SmartIdV3\Features\SessionContract;
+use Vatsake\SmartIdV3\Factories\ClientFactory;
 use Vatsake\SmartIdV3\Responses\Certificate;
 
 class SmartId
 {
+    private ClientFactory $clientFactory;
+
     public function __construct(private SmartIdConfig $config)
     {
+        $this->clientFactory = new ClientFactory($config);
     }
 
     /**
@@ -43,7 +46,7 @@ class SmartId
      */
     public function getSigningCertificate(string $documentNo): Certificate
     {
-        return (new CertificateClient($this->config))->getSigningCertificate($documentNo);
+        return $this->clientFactory->createCertificateClient()->getSigningCertificate($documentNo);
     }
 
     /**
@@ -51,6 +54,6 @@ class SmartId
      */
     public function session(SessionContract $session): SessionClient
     {
-        return new SessionClient($session, $this->config);
+        return $this->clientFactory->createSessionClient($session);
     }
 }

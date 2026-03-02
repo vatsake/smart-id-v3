@@ -69,7 +69,7 @@ class LinkedRequestBuilder extends RequestBuilder
             $this->buildRawDigestSignatureParameters(),
             [
                 'interactions' => base64_encode(json_encode($this->interactions)),
-                'linkedSessionId' => $this->linkedSessionId,
+                'linkedSessionID' => $this->linkedSessionId,
                 'requestProperties' => $this->requestProperties,
                 'originalData' => $this->originalData
             ]
@@ -81,6 +81,6 @@ class LinkedRequestBuilder extends RequestBuilder
             'initialCallbackUrl',
         ]);
 
-        return new LinkedRequest($data);
+        return LinkedRequest::fromArray($data);
     }
 }

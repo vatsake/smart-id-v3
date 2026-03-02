@@ -22,7 +22,7 @@ abstract class ApiClient
     private const USER_AGENT = 'smart-id-php-client/0.9.0';
 
     private Psr18Client $client;
-    private ?LoggerInterface $logger;
+    protected ?LoggerInterface $logger;
 
     public function __construct(protected SmartIdConfig $config)
     {
@@ -114,7 +114,7 @@ abstract class ApiClient
         $isBinary = str_contains($response->getHeaderLine('Content-Type'), 'application/ocsp-response');
 
         $this->logger?->debug('Received response', [
-            'url' => $request->getRequestTarget(),
+            'url' => (string) $request->getUri(),
             'status_code' => $response->getStatusCode(),
             'response_body' => $isBinary ? '[binary data]' : (string) $response->getBody(),
         ]);

@@ -6,24 +6,39 @@ namespace Vatsake\SmartIdV3\Requests;
 
 use Vatsake\SmartIdV3\Builders\Request\NotificationCertChoiceRequestBuilder;
 use Vatsake\SmartIdV3\Requests\Concerns\ToArray;
+use Vatsake\SmartIdV3\Requests\Contracts\NotificationRequest;
 
-class NotificationCertChoiceRequest
+class NotificationCertChoiceRequest implements NotificationRequest
 {
     use ToArray;
 
-    public readonly array $requestProperties;
-    public readonly ?string $nonce;
-    public readonly ?string $certificateLevel;
+    public function __construct(
+        public readonly array $requestProperties,
+        public readonly ?string $certificateLevel = null,
+        public readonly ?string $nonce = null
+    ) {}
 
-    public function __construct(array $data)
+    public static function fromArray(array $data): self
     {
-        $this->requestProperties = $data['requestProperties'];
-        $this->certificateLevel = $data['certificateLevel'] ?? null;
-        $this->nonce = $data['nonce'] ?? null;
+        return new self(
+            $data['requestProperties'],
+            $data['certificateLevel'] ?? null,
+            $data['nonce'] ?? null
+        );
     }
 
     public static function builder(): NotificationCertChoiceRequestBuilder
     {
         return new NotificationCertChoiceRequestBuilder();
+    }
+
+    public function getSignedData(): string
+    {
+        return '';
+    }
+
+    public function getInteractions(): string
+    {
+        return '';
     }
 }

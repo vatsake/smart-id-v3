@@ -30,9 +30,10 @@ class AuthRequestTest extends TestCase
             ],
             'requestProperties' => ['shareMdClientIpAddress' => false],
             'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
+            'vcType' => 'test-vc',
         ];
 
-        $request = new NotificationAuthRequest($data);
+        $request = NotificationAuthRequest::fromArray($data);
 
         $this->assertEquals(SignatureProtocol::ACSP_V2->value, $request->signatureProtocol);
         $this->assertEquals($data['signatureProtocolParameters'], $request->signatureProtocolParameters);
@@ -49,10 +50,10 @@ class AuthRequestTest extends TestCase
             'requestProperties' => ['shareMdClientIpAddress' => true],
             'interactions' => 'encoded',
             'certificateLevel' => CertificateLevel::QUALIFIED->value,
-            'initialCallbackUrl' => 'https://example.com/callback',
+            'vcType' => 'test-vc',
         ];
 
-        $request = new NotificationAuthRequest($data);
+        $request = NotificationAuthRequest::fromArray($data);
 
         $this->assertEquals(CertificateLevel::QUALIFIED->value, $request->certificateLevel);
     }

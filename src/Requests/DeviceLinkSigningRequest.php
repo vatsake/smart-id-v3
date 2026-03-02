@@ -6,39 +6,69 @@ namespace Vatsake\SmartIdV3\Requests;
 
 use Vatsake\SmartIdV3\Requests\Concerns\ToArray;
 use Vatsake\SmartIdV3\Builders\Request\DeviceLinkSigningRequestBuilder;
+use Vatsake\SmartIdV3\Requests\Contracts\DeviceLinkRequest;
 
-class DeviceLinkSigningRequest
+class DeviceLinkSigningRequest implements DeviceLinkRequest
 {
     use ToArray;
-
-    public readonly string $signatureProtocol;
-    public readonly array $signatureProtocolParameters;
-    public readonly array $requestProperties;
-    public readonly string $interactions;
-    public readonly string $originalData;
-    public readonly ?string $nonce;
-    public readonly ?string $certificateLevel;
-    public readonly ?string $initialCallbackUrl;
 
     // Not the best solution, but we don't want to send the original data to Smart ID API, but we need it for validation later
     protected array $excludedFields = [
         'originalData'
     ];
 
-    public function __construct(array $data)
+    public function __construct(
+        public readonly string $signatureProtocol,
+        public readonly array $signatureProtocolParameters,
+        public readonly array $requestProperties,
+        public readonly string $interactions,
+        public readonly string $originalData,
+        public readonly ?string $certificateLevel = null,
+        public readonly ?string $initialCallbackUrl = null,
+        public readonly ?string $nonce = null,
+    ) {}
+
+    public static function fromArray(array $data): self
     {
-        $this->signatureProtocol = $data['signatureProtocol'];
-        $this->signatureProtocolParameters = $data['signatureProtocolParameters'];
-        $this->requestProperties = $data['requestProperties'];
-        $this->interactions = $data['interactions'];
-        $this->originalData = $data['originalData'];
-        $this->certificateLevel = $data['certificateLevel'] ?? null;
-        $this->initialCallbackUrl = $data['initialCallbackUrl'] ?? null;
-        $this->nonce = $data['nonce'] ?? null;
+        return new self(
+            $data['signatureProtocol'],
+            $data['signatureProtocolParameters'],
+            $data['requestProperties'],
+            $data['interactions'],
+            $data['originalData'],
+            $data['certificateLevel'] ?? null,
+            $data['initialCallbackUrl'] ?? null,
+            $data['nonce'] ?? null
+        );
     }
 
     public static function builder(): DeviceLinkSigningRequestBuilder
     {
         return new DeviceLinkSigningRequestBuilder();
+    }
+
+    public function getSignedData(): string
+    {
+        return $this->originalData;
+    }
+
+    public function getSignatureProtocol(): string
+    {
+        return $this->signatureProtocol;
+    }
+
+    public function getInteractions(): string
+    {
+        return $this->interactions;
+    }
+
+    public function getInitialCallbackUrl(): string
+    {
+        return $this->initialCallbackUrl ?? '';
+    }
+
+    public function getSessionType(): string
+    {
+        return 'sign';
     }
 }

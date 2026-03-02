@@ -34,6 +34,6 @@ class NotificationCertChoiceRequestBuilder extends RequestBuilder
 
         $data = $this->addOptionalFields($data, ['nonce', 'certificateLevel']);
 
-        return new NotificationCertChoiceRequest($data);
+        return NotificationCertChoiceRequest::fromArray($data);
     }
 }

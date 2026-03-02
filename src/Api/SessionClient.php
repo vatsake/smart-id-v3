@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Api;
 
-use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\SessionState;
 use Vatsake\SmartIdV3\Session\AuthSession;
@@ -17,14 +16,12 @@ class SessionClient extends ApiClient
 {
     private bool $withPolling = false;
     private int $pollIntervalMs = 0;
-    private ?LoggerInterface $logger;
 
     public function __construct(
         private SessionContract $session,
         SmartIdConfig $config
     ) {
         parent::__construct($config);
-        $this->logger = $config->getLogger();
     }
 
     public function withPolling(int $pollIntervalMs): self

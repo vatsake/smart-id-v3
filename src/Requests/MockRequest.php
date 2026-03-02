@@ -12,19 +12,23 @@ class MockRequest
 {
     use ToArray;
 
-    public readonly string $documentNumber;
-    public readonly string $deviceLink;
-    public readonly string $flowType;
-    public readonly ?string $browserCookie;
-    public readonly ?string $initialCallbackUrl;
+    public function __construct(
+        public readonly string $documentNumber,
+        public readonly string $deviceLink,
+        public readonly string $flowType,
+        public readonly ?string $browserCookie = null,
+        public readonly ?string $initialCallbackUrl = null
+    ) {}
 
-    public function __construct(array $data)
+    public static function fromArray(array $data): self
     {
-        $this->documentNumber = $data['documentNumber'];
-        $this->deviceLink = $data['deviceLink'];
-        $this->flowType = $data['flowType'];
-        $this->browserCookie = $data['browserCookie'] ?? null;
-        $this->initialCallbackUrl = $data['initialCallbackUrl'] ?? null;
+        return new self(
+            $data['documentNumber'],
+            $data['deviceLink'],
+            $data['flowType'],
+            $data['browserCookie'] ?? null,
+            $data['initialCallbackUrl'] ?? null
+        );
     }
 
     public static function builder(): MockRequestBuilder

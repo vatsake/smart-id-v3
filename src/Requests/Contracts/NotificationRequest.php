@@ -1,0 +1,18 @@
+<?php
+
+namespace Vatsake\SmartIdV3\Requests\Contracts;
+
+interface NotificationRequest
+{
+    /**
+     * For signing requests, returns the raw data that is signed. For authentication requests, returns rpchallenge (base64) that is signed.
+     */
+    public function getSignedData(): string;
+
+    /**
+     * Interactions in base64
+     */
+    public function getInteractions(): string;
+
+    public function toArray(): array;
+}

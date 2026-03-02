@@ -64,7 +64,7 @@ class DeviceLinkSigningRequestBuilder extends RequestBuilder
             ]
         );
 
-        return new DeviceLinkSigningRequest(
+        return DeviceLinkSigningRequest::fromArray(
             $this->addOptionalFields($data, [
                 'nonce' => 'nonce',
                 'certificateLevel' => 'certificateLevel',

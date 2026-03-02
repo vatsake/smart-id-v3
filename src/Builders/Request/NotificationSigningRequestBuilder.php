@@ -61,7 +61,7 @@ class NotificationSigningRequestBuilder extends RequestBuilder
             ]
         );
 
-        return new NotificationSigningRequest(
+        return NotificationSigningRequest::fromArray(
             $this->addOptionalFields($data, [
                 'nonce' => 'nonce',
                 'certificateLevel' => 'certificateLevel',

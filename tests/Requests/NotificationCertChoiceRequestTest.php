@@ -16,7 +16,7 @@ class NotificationCertChoiceRequestTest extends TestCase
             'requestProperties' => ['shareMdClientIpAddress' => false],
         ];
 
-        $request = new NotificationCertChoiceRequest($data);
+        $request = NotificationCertChoiceRequest::fromArray($data);
 
         $this->assertEquals(['shareMdClientIpAddress' => false], $request->requestProperties);
         $this->assertNull($request->nonce);
@@ -31,7 +31,7 @@ class NotificationCertChoiceRequestTest extends TestCase
             'certificateLevel' => CertificateLevel::QUALIFIED->value,
         ];
 
-        $request = new NotificationCertChoiceRequest($data);
+        $request = NotificationCertChoiceRequest::fromArray($data);
 
         $this->assertEquals(['shareMdClientIpAddress' => true], $request->requestProperties);
         $this->assertEquals('test-nonce', $request->nonce);

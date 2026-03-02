@@ -59,6 +59,6 @@ class DeviceLinkAuthRequestBuilder extends RequestBuilder
 
         $data = $this->addOptionalFields($data, ['certificateLevel', 'initialCallbackUrl']);
 
-        return new DeviceLinkAuthRequest($data);
+        return DeviceLinkAuthRequest::fromArray($data);
     }
 }

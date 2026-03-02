@@ -50,12 +50,13 @@ class NotificationAuthRequestBuilder extends RequestBuilder
             $this->buildAcspV2SignatureParameters(),
             [
                 'interactions' => base64_encode(json_encode($this->interactions)),
-                'requestProperties' => $this->requestProperties
+                'requestProperties' => $this->requestProperties,
+                'vcType' => 'numeric4',
             ]
         );
 
         $data = $this->addOptionalFields($data, ['certificateLevel']);
 
-        return new NotificationAuthRequest($data);
+        return NotificationAuthRequest::fromArray($data);
     }
 }

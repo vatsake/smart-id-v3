@@ -42,7 +42,7 @@
     }
   },
   "scripts": {
-    "test": "phpunit --testdox"
+    "test": "phpunit --testdox --coverage-html=coverage"
   },
   "minimum-stability": "dev",
   "prefer-stable": false,

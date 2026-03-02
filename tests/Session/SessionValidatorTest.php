@@ -69,11 +69,26 @@ class SessionValidatorTest extends TestCase
 
         $this->demoX509 = file_get_contents(self::DEMO_SIGNING_CERTIFICATE_PATH);
 
+        $requestData = [
+            'signatureProtocol' => SignatureProtocol::RAW_DIGEST_SIGNATURE->value,
+            'signatureProtocolParameters' => [
+                'digest' => base64_encode(hash('sha256', 'hello world', true)),
+            ],
+            'requestProperties' => ['shareMdClientIpAddress' => false],
+            'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
+            'originalData' => 'hello world',
+        ];
+        $notificationRequest = \Vatsake\SmartIdV3\Requests\NotificationSigningRequest::fromArray($requestData);
+
+        $responseData = [
+            'sessionID' => 'test-session-id',
+            'vc' => ['value' => 'test-vc-value'],
+        ];
+        $notificationResponse = \Vatsake\SmartIdV3\Responses\NotificationResponse::fromArray($responseData);
+
         $notifSession = new NotificationSession(
-            '1',
-            'hello world',
-            'test',
-            ''
+            $notificationRequest,
+            $notificationResponse
         );
 
         $sessionData = [
@@ -173,11 +188,26 @@ class SessionValidatorTest extends TestCase
 
     public function testValidateAuthSessionSignatureThrowsExceptionWithInvalidSignature(): void
     {
+        $requestData = [
+            'signatureProtocol' => SignatureProtocol::ACSP_V2->value,
+            'signatureProtocolParameters' => [
+                'rpChallenge' => base64_encode(random_bytes(64)),
+            ],
+            'requestProperties' => ['shareMdClientIpAddress' => false],
+            'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
+            'vcType' => 'test-vc',
+        ];
+        $notificationRequest = \Vatsake\SmartIdV3\Requests\NotificationAuthRequest::fromArray($requestData);
+
+        $responseData = [
+            'sessionID' => 'test-session-id',
+            'vc' => ['value' => 'test-vc-value'],
+        ];
+        $notificationResponse = \Vatsake\SmartIdV3\Responses\NotificationResponse::fromArray($responseData);
+
         $notifSession = new NotificationSession(
-            '1',
-            'hello world',
-            'test',
-            ''
+            $notificationRequest,
+            $notificationResponse
         );
 
         $authCert = file_get_contents(self::DEMO_AUTH_CERTIFICATE_PATH);
@@ -236,11 +266,26 @@ class SessionValidatorTest extends TestCase
 
     public function testValidateAuthSessionCertificate(): void
     {
+        $requestData = [
+            'signatureProtocol' => SignatureProtocol::ACSP_V2->value,
+            'signatureProtocolParameters' => [
+                'rpChallenge' => base64_encode(random_bytes(64)),
+            ],
+            'requestProperties' => ['shareMdClientIpAddress' => false],
+            'interactions' => base64_encode(json_encode([['type' => 'displayTextAndPIN', 'displayText60' => 'Test']])),
+            'vcType' => 'test-vc',
+        ];
+        $notificationRequest = \Vatsake\SmartIdV3\Requests\NotificationAuthRequest::fromArray($requestData);
+
+        $responseData = [
+            'sessionID' => 'test-session-id',
+            'vc' => ['value' => 'test-vc-value'],
+        ];
+        $notificationResponse = \Vatsake\SmartIdV3\Responses\NotificationResponse::fromArray($responseData);
+
         $notifSession = new NotificationSession(
-            '1',
-            'hello world',
-            'test',
-            ''
+            $notificationRequest,
+            $notificationResponse
         );
 
         $authCert = file_get_contents(self::DEMO_AUTH_CERTIFICATE_PATH);

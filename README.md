@@ -26,7 +26,9 @@ A PHP library for interacting with the [Smart ID v3 API](https://sk-eid.github.i
   - [Certificate Retrieval](#certificate-retrieval)
 - [Response Validation](#response-validation)
 - [Error Handling](#error-handling)
+- [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
 - [Resources](#resources)
 - [Testing](#testing)
 - [Todo](#todo)
@@ -845,12 +847,12 @@ Exceptions are organized in a hierarchy to help with error handling:
 | `SessionSecretMismatchException`           | Session secret mismatch.                                   |
 | `UserChallengeMismatchException`           | User challenge mismatch.                                   |
 
-### Best Practices
+## Best Practices
 
-1. **Always validate responses** - Never trust unvalidated signatures or certificates
-2. **Enable all validations** - Use `withCertificateValidation(true)`, `withRevocationValidation(true)`, and `withSignatureValidation(true)`
-3. **Log exceptions** - Capture exception details for debugging and monitoring
-4. **Provide user feedback** - Inform users of temporary issues (timeouts, refusal) vs. permanent errors (revoked certificate)
+- **Always validate responses** - Never trust unvalidated signatures or certificates
+- **Enable all validations** - Use `withCertificateValidation(true)`, `withRevocationValidation(true)`, `withCallbackUrlValidation(true) (App2App/Web2App flows)`, and `withSignatureValidation(true)`
+- **Log exceptions** - Capture exception details for debugging and monitoring
+- **Provide user feedback** - Inform users of temporary issues (timeouts, refusal) vs. permanent errors (revoked certificate)
 
 ## Troubleshooting
 
@@ -860,7 +862,7 @@ Exceptions are organized in a hierarchy to help with error handling:
 
 If you're getting `CertificateChainException` or other certificate errors:
 
-1. Verify your certificate files are in PEM format
+1. Verify all your trusted certificates are in PEM format
 2. Check that the path is correct
 3. Ensure certificate file permissions allow reading (644 or similar)
 
@@ -896,6 +898,19 @@ $config = new SmartIdConfig(
 );
 ```
 
+## FAQ
+
+** How would I know if user is on mobile? **
+
+There really isn't a foolproof method. One way is using the User-Agent header, but it can be spoofed or changed by the user.
+
+```js
+function isOnMobile() {
+  const ua = navigator.userAgent
+  return /mobi|iphone|ipod|ipad|android/i.test(ua)
+}
+```
+
 ## Resources
 
 **Official Documentation:**
@@ -909,7 +924,7 @@ $config = new SmartIdConfig(
 Run tests with PHPUnit:
 
 ```bash
-./vendor/bin/phpunit
+composer test
 ```
 
 > [!NOTE]

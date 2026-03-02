@@ -112,7 +112,7 @@ abstract class BaseSession
     }
 
     /**
-     * Only populated for signature and authentication sessions
+     * Only populated for signature and authentication sessions in App2App/Web2App flows
      */
     public function getInitialCallbackUrl(): string
     {

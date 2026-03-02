@@ -17,7 +17,7 @@ $config = new SmartIdConfig(
     //baseUrl: SmartIdBaseUrl::PROD,
     //relyingPartyUUID: '',
     //relyingPartyName: '',
-    logger: $log,
+    //logger: $log,
 );
 
 $callbackUrlBase = 'https://localhost/callback.php';

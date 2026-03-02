@@ -32,7 +32,7 @@ class SigningRequestTest extends TestCase
             'originalData' => 'original test data',
         ];
 
-        $request = new DeviceLinkSigningRequest($data);
+        $request = DeviceLinkSigningRequest::fromArray($data);
 
         $this->assertEquals(SignatureProtocol::RAW_DIGEST_SIGNATURE->value, $request->signatureProtocol);
         $this->assertEquals($data['signatureProtocolParameters'], $request->signatureProtocolParameters);

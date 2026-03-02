@@ -7,8 +7,10 @@ namespace Vatsake\SmartIdV3\Features\DeviceLink;
 use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Enums\SessionType;
 use Vatsake\SmartIdV3\Features\SessionContract;
+use Vatsake\SmartIdV3\Requests\Contracts\DeviceLinkRequest;
+use Vatsake\SmartIdV3\Responses\DeviceLinkResponse;
+use Vatsake\SmartIdV3\Utils\UrlSafe;
 
 class DeviceLinkSession implements SessionContract
 {
@@ -22,17 +24,9 @@ class DeviceLinkSession implements SessionContract
     public readonly string $relyingPartyName;
 
     public function __construct(
-        public readonly string $sessionId,
-        public readonly string $sessionToken,
-        public readonly string $sessionSecret,
-        public readonly string $deviceLinkBase,
-        public readonly SessionType $sessionType,
-        public readonly string $signatureProtocol,
-        public readonly string $digest,
-        public readonly string $interactions,
-        private string $originalData,
+        public readonly DeviceLinkRequest $sessionRequest,
+        public readonly DeviceLinkResponse $sessionResponse,
         SmartIdConfig $config,
-        public readonly string $initialCallbackUrl = '',
     ) {
         $this->startedAt = time();
         $this->relyingPartyName = $config->getRelyingPartyName();
@@ -47,15 +41,15 @@ class DeviceLinkSession implements SessionContract
     private function buildDeviceLink(string $fallbackLang, DeviceLinkType $deviceLinkType): string
     {
         $isQr = $deviceLinkType === DeviceLinkType::QR;
-        $deviceLink = $this->deviceLinkBase . '?'
+
+        $deviceLink = $this->sessionResponse->deviceLinkBase . '?'
             . 'deviceLinkType=' . $deviceLinkType->value
             . ($isQr ? '&elapsedSeconds=' . $this->getElapsedSeconds() : '')
-            . '&sessionToken=' . $this->sessionToken
-            . '&sessionType=' . $this->sessionType->value
+            . '&sessionToken=' . $this->sessionResponse->sessionToken
+            . '&sessionType=' . $this->sessionRequest->getSessionType()
             . '&version=' . self::VERSION
             . '&lang=' . $fallbackLang;
 
-        $this->logger?->debug('Built device link URL', ['deviceLink' => $deviceLink]);
         return $deviceLink;
     }
 
@@ -63,12 +57,12 @@ class DeviceLinkSession implements SessionContract
     {
         $components = [
             self::PAYLOAD_PREFIX,
-            $this->signatureProtocol,
-            $this->digest,
+            $this->sessionRequest->getSignatureProtocol(),
+            $this->getSignedData(),
             base64_encode($this->relyingPartyName),
-            '',
-            $this->interactions,
-            $this->initialCallbackUrl,
+            '', // Broker
+            $this->getInteractions(),
+            $this->sessionRequest->getInitialCallbackUrl(),
             $deviceLink
         ];
         $payload = implode('|', $components);
@@ -80,10 +74,13 @@ class DeviceLinkSession implements SessionContract
     private function generateAuthCode(string $deviceLink): string
     {
         $payload = $this->buildPayload($deviceLink);
-        $sessionSecret = base64_decode($this->sessionSecret);
-        $hash = hash_hmac('sha256', $payload, $sessionSecret, true);
-        $this->logger?->debug('Generated auth code for device link', ['authCode' => $hash]);
-        return rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+        $sessionSecret = base64_decode($this->sessionResponse->sessionSecret);
+
+        $hash = base64_encode(hash_hmac('sha256', $payload, $sessionSecret, true));
+        $urlSafeHash = UrlSafe::toUrlSafe(rtrim(strtr($hash, '+/', '-_'), '='));
+
+        $this->logger?->debug('Generated auth code for device link', ['authCode' => $urlSafeHash]);
+        return $urlSafeHash;
     }
 
     public function getDeviceLink(DeviceLinkType $deviceLinkType, string $fallbackLang = 'eng'): string
@@ -95,31 +92,29 @@ class DeviceLinkSession implements SessionContract
         return $fullLink;
     }
 
+
     public function getSessionId(): string
     {
-        return $this->sessionId;
+        return $this->sessionResponse->sessionId;
     }
 
     public function getSignedData(): string
     {
-        return $this->originalData;
+        return $this->sessionRequest->getSignedData();
     }
 
     public function getInteractions(): string
     {
-        return $this->interactions;
+        return $this->sessionRequest->getInteractions();
+    }
+
+    public function getInitialCallbackUrl(): string
+    {
+        return $this->sessionRequest->getInitialCallbackUrl();
     }
 
     public function getSessionSecret(): string
     {
-        return $this->sessionSecret;
-    }
-
-    /**
-     * Only populated for device link flows when using App2App/Web2App flows
-     */
-    public function getInitialCallbackUrl(): string
-    {
-        return $this->initialCallbackUrl;
+        return $this->sessionResponse->sessionSecret;
     }
 }

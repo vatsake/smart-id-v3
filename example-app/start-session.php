@@ -2,6 +2,9 @@
 
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
+use Vatsake\SmartIdV3\Features\DeviceLink\DeviceLinkSession;
+use Vatsake\SmartIdV3\Features\Notification\NotificationSession;
+use Vatsake\SmartIdV3\Features\SessionContract;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
 use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 use Vatsake\SmartIdV3\Requests\DeviceLinkCertChoiceRequest;
@@ -56,7 +59,6 @@ function buildNotificationSigningRequest(): NotificationSigningRequest
 {
     return NotificationSigningRequest::builder()
         ->withInteractions('sign text', 'sign text but longer')
-        ->withRequestProperties(true)
         ->withData('Hello world', HashAlgorithm::SHA_256)
         ->build();
 }
@@ -65,7 +67,6 @@ function buildNotificationAuthRequest(): NotificationAuthRequest
 {
     return NotificationAuthRequest::builder()
         ->withInteractions('Log in text', 'Log in text but longer')
-        ->withRequestProperties(true)
         ->withRpChallenge(RpChallenge::generate(), HashAlgorithm::SHA_256)
         ->build();
 }
@@ -86,7 +87,6 @@ function buildDeviceLinkAuthRequest(bool $qr): DeviceLinkAuthRequest
 {
     $req = DeviceLinkAuthRequest::builder()
         ->withInteractions('Log in text', 'Log in text but longer')
-        ->withRequestProperties(true)
         ->withRpChallenge(RpChallenge::generate(), HashAlgorithm::SHA_256);
 
     if (!$qr) {
@@ -105,7 +105,7 @@ function getCallbackUrl(string $action): string
     return $callbackUrlBase . '?action=' . $action . '&uid=' . $randomBytes;
 }
 
-function createSession(SmartId $smartClient, string $action, mixed $request): mixed
+function createSession(SmartId $smartClient, string $action, mixed $request): SessionContract
 {
     $semIdentifier = $_GET['semIdentifier'] ?? null;
 
@@ -127,13 +127,17 @@ function createSession(SmartId $smartClient, string $action, mixed $request): mi
     }
 }
 
-function buildResponse(mixed $session, string $action, bool $qr): string
+function buildResponse(SessionContract $session, string $action, bool $qr): string
 {
     $response = ['status' => 'ok'];
 
     // For Web2App flow include link
-    if (!$qr && str_starts_with($action, 'device_link')) {
+    if (!$qr && $session instanceof DeviceLinkSession) {
         $response['link'] = $session->getDeviceLink(DeviceLinkType::WEB_TO_APP);
+    }
+
+    if ($session instanceof NotificationSession) {
+        $response['vc'] = $session->response->vc;
     }
 
     return json_encode($response);

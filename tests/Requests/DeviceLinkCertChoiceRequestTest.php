@@ -19,7 +19,7 @@ class DeviceLinkCertChoiceRequestTest extends TestCase
             'requestProperties' => ['shareMdClientIpAddress' => false],
         ];
 
-        $request = new DeviceLinkCertChoiceRequest($data);
+        $request = DeviceLinkCertChoiceRequest::fromArray($data);
 
         $this->assertEquals(['shareMdClientIpAddress' => false], $request->requestProperties);
         $this->assertNull($request->nonce);
@@ -36,7 +36,7 @@ class DeviceLinkCertChoiceRequestTest extends TestCase
             'initialCallbackUrl' => 'https://example.com/callback',
         ];
 
-        $request = new DeviceLinkCertChoiceRequest($data);
+        $request = DeviceLinkCertChoiceRequest::fromArray($data);
 
         $this->assertEquals(['shareMdClientIpAddress' => true], $request->requestProperties);
         $this->assertEquals('test-nonce', $request->nonce);
