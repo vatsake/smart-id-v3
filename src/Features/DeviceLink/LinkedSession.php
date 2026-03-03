@@ -13,7 +13,8 @@ class LinkedSession implements SessionContract
     public function __construct(
         public readonly LinkedRequest $sessionRequest,
         public readonly LinkedResponse $sessionResponse,
-    ) {}
+    ) {
+    }
 
     public function getSessionId(): string
     {

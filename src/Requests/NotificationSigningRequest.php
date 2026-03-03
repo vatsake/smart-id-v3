@@ -25,7 +25,8 @@ class NotificationSigningRequest implements NotificationRequest
         public readonly string $originalData,
         public readonly ?string $certificateLevel = null,
         public readonly ?string $nonce = null
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

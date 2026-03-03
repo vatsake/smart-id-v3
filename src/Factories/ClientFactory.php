@@ -15,10 +15,11 @@ use Vatsake\SmartIdV3\Api\Ocsp\OcspClient;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Features\SessionContract;
 
-
 class ClientFactory
 {
-    public function __construct(private SmartIdConfig $config) {}
+    public function __construct(private SmartIdConfig $config)
+    {
+    }
 
     public function createCertificateClient(): CertificateClient
     {

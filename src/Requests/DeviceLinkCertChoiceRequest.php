@@ -17,7 +17,8 @@ class DeviceLinkCertChoiceRequest implements DeviceLinkRequest
         public readonly ?string $nonce = null,
         public readonly ?string $certificateLevel = null,
         public readonly ?string $initialCallbackUrl = null
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

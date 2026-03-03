@@ -18,7 +18,8 @@ class MockRequest
         public readonly string $flowType,
         public readonly ?string $browserCookie = null,
         public readonly ?string $initialCallbackUrl = null
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

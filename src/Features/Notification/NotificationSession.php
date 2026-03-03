@@ -13,7 +13,8 @@ class NotificationSession implements SessionContract
     public function __construct(
         public readonly NotificationRequest $request,
         public readonly NotificationResponse $response,
-    ) {}
+    ) {
+    }
 
     public function getSessionId(): string
     {

@@ -16,7 +16,8 @@ class NotificationCertChoiceRequest implements NotificationRequest
         public readonly array $requestProperties,
         public readonly ?string $certificateLevel = null,
         public readonly ?string $nonce = null
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

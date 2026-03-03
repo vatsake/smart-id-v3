@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vatsake\SmartIdV3\Responses;
 
 class DeviceLinkResponse
@@ -9,7 +11,8 @@ class DeviceLinkResponse
         public readonly string $sessionToken,
         public readonly string $sessionSecret,
         public readonly string $deviceLinkBase,
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $body): self
     {

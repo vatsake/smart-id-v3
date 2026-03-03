@@ -19,7 +19,8 @@ class NotificationAuthRequest implements NotificationRequest
         public readonly string $interactions,
         public readonly string $vcType,
         public readonly ?string $certificateLevel = null,
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {

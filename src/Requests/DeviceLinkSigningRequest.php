@@ -26,7 +26,8 @@ class DeviceLinkSigningRequest implements DeviceLinkRequest
         public readonly ?string $certificateLevel = null,
         public readonly ?string $initialCallbackUrl = null,
         public readonly ?string $nonce = null,
-    ) {}
+    ) {
+    }
 
     public static function fromArray(array $data): self
     {
