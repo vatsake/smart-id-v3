@@ -6,9 +6,8 @@ namespace Vatsake\SmartIdV3\Tests\Session;
 
 use PHPUnit\Framework\TestCase;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
-use Vatsake\SmartIdV3\Exceptions\Validation\SignatureException;
+use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
 use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
 use Vatsake\SmartIdV3\Responses\Signature\AcspV2Signature;
@@ -30,7 +29,7 @@ class AuthTest extends TestCase
     {
         parent::setUp();
         $this->config = new SmartIdConfig(
-            baseUrl: SmartIdBaseUrl::DEMO,
+            env: SmartIdEnv::DEMO,
             relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
             relyingPartyName: 'DEMO',
             certificatePath: __DIR__ . '/../Resources/trusted-mixed-certs',
@@ -66,8 +65,6 @@ class AuthTest extends TestCase
             ->withRevocationValidation(true)
             ->check();
 
-        // DEMO signature validation fails
-        $this->expectException(SignatureException::class);
         $result->validate()
             ->withSignatureValidation(true)
             ->withCertificateValidation(false)
@@ -104,8 +101,6 @@ class AuthTest extends TestCase
             ->withRevocationValidation(true)
             ->check();
 
-        // DEMO signature validation fails
-        $this->expectException(SignatureException::class);
         $result->validate()
             ->withSignatureValidation(true)
             ->withCertificateValidation(false)
@@ -118,7 +113,7 @@ class AuthTest extends TestCase
     public function testDeviceLinkAuthRequestWithDocument()
     {
         $rpChallenge = RpChallenge::generate();
-        $request = AuthRequest::builder()->withInteractions(
+        $request = DeviceLinkAuthRequest::builder()->withInteractions(
             'Test authentication',
             'Test authentication.'
         )->withRpChallenge($rpChallenge, HashAlgorithm::SHA_512)
@@ -130,6 +125,7 @@ class AuthTest extends TestCase
             ->withDeviceLink($session->getDeviceLink(DeviceLinkType::QR))
             ->withFlowType(FlowType::QR)
             ->build();
+
         $this->smartId->deviceLink()->mockDevice()->start($mockReq);
 
         assertNotNull($session->getSessionId());
@@ -140,7 +136,7 @@ class AuthTest extends TestCase
         $result = $this->smartId->session($session)->getAuthSession(60000);
         assertTrue($result->isSuccessful());
         assertInstanceOf(AcspV2Signature::class, $result->signature);
-        assertNull($result->deviceIp);
+        assertNull($result->deviceIpAddress);
 
         // Will throw if validation fails
         $result->validate()
@@ -149,15 +145,13 @@ class AuthTest extends TestCase
             ->withRevocationValidation(true)
             ->check();
 
-        // DEMO signature validation fails
-        $this->expectException(SignatureException::class);
         $result->validate()
             ->withSignatureValidation(true)
             ->withCertificateValidation(false)
             ->withRevocationValidation(false)
             ->check();
-    }
-     */
+    }*/
+
 
     // Mocking doesn't work
     /*

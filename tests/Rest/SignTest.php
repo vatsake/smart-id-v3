@@ -7,24 +7,12 @@ namespace Vatsake\SmartIdV3\Tests\Session;
 use OpenSSLCertificate;
 use PHPUnit\Framework\TestCase;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
-use Vatsake\SmartIdV3\Enums\DeviceLinkType;
-use Vatsake\SmartIdV3\Enums\FlowType;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
-use Vatsake\SmartIdV3\Exceptions\Validation\SignatureException;
+use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 use Vatsake\SmartIdV3\Identity\SemanticsIdentifier;
-use Vatsake\SmartIdV3\Requests\AuthRequest;
-use Vatsake\SmartIdV3\Requests\DeviceLinkCertChoiceRequest;
-use Vatsake\SmartIdV3\Requests\DeviceLinkSigningRequest;
-use Vatsake\SmartIdV3\Requests\LinkedRequest;
-use Vatsake\SmartIdV3\Requests\MockRequest;
-use Vatsake\SmartIdV3\Requests\NotificationCertChoiceRequest;
 use Vatsake\SmartIdV3\Requests\NotificationSigningRequest;
-use Vatsake\SmartIdV3\Responses\AcspV2Signature;
-use Vatsake\SmartIdV3\Responses\CertificateChoiceSignature;
 use Vatsake\SmartIdV3\Responses\Signature\RawDigestSignature;
 use Vatsake\SmartIdV3\SmartId;
-use Vatsake\SmartIdV3\Utils\RpChallenge;
 use function PHPUnit\Framework\assertEmpty;
 use function PHPUnit\Framework\assertInstanceOf;
 use function PHPUnit\Framework\assertNotNull;
@@ -41,7 +29,7 @@ class SignTest extends TestCase
     {
         parent::setUp();
         $this->config = new SmartIdConfig(
-            baseUrl: SmartIdBaseUrl::DEMO,
+            env: SmartIdEnv::DEMO,
             relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
             relyingPartyName: 'DEMO',
             certificatePath: __DIR__ . '/../Resources/trusted-mixed-certs',

@@ -100,6 +100,6 @@ class MockRequestBuilder
             'initialCallbackUrl',
         ]);
 
-        return new MockRequest($data);
+        return MockRequest::fromArray($data);
     }
 }

@@ -314,7 +314,7 @@ class SessionValidatorBuilder
         $interactionsHash = base64_encode(hash('sha256', $this->session->getInteractions(), true));
 
         return implode('|', [
-            'smart-id',
+            $this->config->getScheme(),
             $this->session->signatureProtocol->value,
             $this->session->signature->serverRandom,
             $this->session->getSignedData(),

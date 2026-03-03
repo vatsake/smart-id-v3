@@ -21,14 +21,6 @@
             padding: 20px;
         }
 
-        body.mobile .hide-on-mobile {
-            display: none;
-        }
-
-        body:not(.mobile) .hide-on-desktop {
-            display: none;
-        }
-
         .container {
             background: white;
             border: 1px solid #e0e0e0;
@@ -240,7 +232,7 @@
                 <div class="category">
                     <div class="category-title">Device Link</div>
                     <div class="sub-options">
-                        <button class="option-btn" onclick="selectAction('device_link_sign')">Sign <b class="hide-on-desktop">(Doesn't work on mobile)</b></button>
+                        <button class="option-btn" onclick="selectAction('device_link_sign')">Sign</button>
                         <button class="option-btn" onclick="selectAction('device_link_auth')">Authenticate</button>
                     </div>
                 </div>

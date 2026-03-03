@@ -37,7 +37,7 @@ A PHP library for interacting with the [Smart ID v3 API](https://sk-eid.github.i
 
 ```php
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
+use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 use Vatsake\SmartIdV3\SmartId;
 use Vatsake\SmartIdV3\Enums\DeviceLinkType;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
@@ -48,7 +48,7 @@ use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
 $config = new SmartIdConfig(
     relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
     relyingPartyName: 'DEMO',
-    baseUrl: SmartIdBaseUrl::DEMO, // Use SmartIdBaseUrl::PROD for live
+    env: SmartIdEnv::DEMO,
     certificatePath: '/path/to/mixed/certificates/folder'
 );
 $smartId = new SmartId($config);
@@ -138,12 +138,12 @@ Initialize the Smart ID client with `SmartIdConfig`:
 
 ```php
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
+use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 
 $config = new SmartIdConfig(
     relyingPartyName: 'DEMO',
     relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
-    baseUrl: SmartIdBaseUrl::DEMO,
+    env: SmartIdEnv::DEMO,
     caPath: '/path/to/ca-certificates',
     intPath: '/path/to/intermediate-certificates'
 );
@@ -155,7 +155,7 @@ $config = new SmartIdConfig(
 $config = new SmartIdConfig(
     relyingPartyUUID: 'DEMO',
     relyingPartyName: '00000000-0000-4000-8000-000000000000',
-    baseUrl: SmartIdBaseUrl::DEMO,
+    env: SmartIdEnv::DEMO,
     certificatePath: '/path/to/mixed-certificates'
 );
 ```
@@ -172,7 +172,7 @@ $log->pushHandler(new Monolog\Handler\StreamHandler('php://stdout'));
 $config = new SmartIdConfig(
     relyingPartyUUID: 'DEMO',
     relyingPartyName: '00000000-0000-4000-8000-000000000000',
-    baseUrl: SmartIdBaseUrl::DEMO,
+    env: SmartIdEnv::DEMO,
     certificatePath: '/path/to/certificates',
     httpClient: $client,
     logger: $log
@@ -932,7 +932,6 @@ composer test
 
 ## Todo
 
-- Figure out why mocking doesn't work in DEMO environment
-- Figure out why authentication signature validation fails in DEMO environment
+- Figure out why mocking in DEMO doesn't work
 - Test App2App and Web2App flows
 - More stuff

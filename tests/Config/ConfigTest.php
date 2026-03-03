@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
+use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 
 class ConfigTest extends TestCase
 {
@@ -26,7 +26,7 @@ class ConfigTest extends TestCase
 
         $this->assertSame('test-uuid', $config->getRelyingPartyUUID());
         $this->assertSame('test-name', $config->getRelyingPartyName());
-        $this->assertSame(SmartIdBaseUrl::PROD, $config->getBaseUrl());
+        $this->assertSame(SmartIdEnv::PROD->getBaseUrl(), $config->getBaseUrl());
         $this->assertSame($this->testCertPath, $config->getCertificatePath());
         $this->assertNull($config->getCaPath());
         $this->assertNull($config->getIntPath());
@@ -199,14 +199,15 @@ class ConfigTest extends TestCase
             'httpClient' => $mockClient,
             'relyingPartyUUID' => 'test-uuid',
             'relyingPartyName' => 'test-name',
-            'baseUrl' => SmartIdBaseUrl::DEMO,
+            'env' => SmartIdEnv::DEMO,
             'certificatePath' => $this->testCertPath,
             'logger' => $mockLogger
         ]);
 
         $this->assertSame('test-uuid', $config->getRelyingPartyUUID());
         $this->assertSame('test-name', $config->getRelyingPartyName());
-        $this->assertSame(SmartIdBaseUrl::DEMO, $config->getBaseUrl());
+        $this->assertSame(SmartIdEnv::DEMO->getBaseUrl(), $config->getBaseUrl());
+        $this->assertSame(SmartIdEnv::DEMO->getScheme(), $config->getScheme());
         $this->assertSame($this->testCertPath, $config->getCertificatePath());
         $this->assertSame($mockLogger, $config->getLogger());
     }
@@ -224,7 +225,8 @@ class ConfigTest extends TestCase
 
         $this->assertSame('test-uuid', $config->getRelyingPartyUUID());
         $this->assertSame('test-name', $config->getRelyingPartyName());
-        $this->assertSame(SmartIdBaseUrl::PROD, $config->getBaseUrl());
+        $this->assertSame(SmartIdEnv::PROD->getBaseUrl(), $config->getBaseUrl());
+        $this->assertSame(SmartIdEnv::PROD->getScheme(), $config->getScheme());
         $this->assertNull($config->getLogger());
     }
 

@@ -15,7 +15,6 @@ use Vatsake\SmartIdV3\Utils\UrlSafe;
 class DeviceLinkSession implements SessionContract
 {
     private const VERSION = '1.0';
-    private const PAYLOAD_PREFIX = 'smart-id';
 
     private ?LoggerInterface $logger = null;
 
@@ -23,12 +22,15 @@ class DeviceLinkSession implements SessionContract
 
     public readonly string $relyingPartyName;
 
+    private string $scheme;
+
     public function __construct(
         public readonly DeviceLinkRequest $sessionRequest,
         public readonly DeviceLinkResponse $sessionResponse,
         SmartIdConfig $config,
     ) {
         $this->startedAt = time();
+        $this->scheme = $config->getScheme();
         $this->relyingPartyName = $config->getRelyingPartyName();
         $this->logger = $config->getLogger();
     }
@@ -56,7 +58,7 @@ class DeviceLinkSession implements SessionContract
     private function buildPayload(string $deviceLink): string
     {
         $components = [
-            self::PAYLOAD_PREFIX,
+            $this->scheme,
             $this->sessionRequest->getSignatureProtocol(),
             $this->getSignedData(),
             base64_encode($this->relyingPartyName),

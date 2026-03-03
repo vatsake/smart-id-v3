@@ -7,7 +7,7 @@ namespace Vatsake\SmartIdV3\Config;
 use Http\Discovery\Psr18Client;
 use Psr\Http\Client\ClientInterface;
 use Psr\Log\LoggerInterface;
-use Vatsake\SmartIdV3\Constants\SmartIdBaseUrl;
+use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 
 /**
  * Trusted certificates configuration supports two modes:
@@ -21,7 +21,7 @@ final class SmartIdConfig
     public function __construct(
         private string $relyingPartyUUID,
         private string $relyingPartyName,
-        private string $baseUrl = SmartIdBaseUrl::PROD,
+        private SmartIdEnv $env = SmartIdEnv::PROD,
         ?ClientInterface $httpClient = null,
         private ?string $certificatePath = null,
         private ?string $caPath = null,
@@ -91,11 +91,16 @@ final class SmartIdConfig
 
     public function getBaseUrl(): string
     {
-        return $this->baseUrl;
+        return $this->env->getBaseUrl();
+    }
+
+    public function getScheme(): string
+    {
+        return $this->env->getScheme();
     }
 
     /**
-     * @param array{relyingPartyUUID?: string, relyingPartyName?: string, baseUrl?: string, certificatePath?: string, caPath?: string, intPath?: string, httpClient?: ClientInterface, logger?: LoggerInterface} $config
+     * @param array{relyingPartyUUID?: string, relyingPartyName?: string, env?: SmartIdEnv, certificatePath?: string, caPath?: string, intPath?: string, httpClient?: ClientInterface, logger?: LoggerInterface} $config
      */
     public static function fromArray(array $config): self
     {
@@ -103,7 +108,7 @@ final class SmartIdConfig
             httpClient: $config['httpClient'] ?? null,
             relyingPartyUUID: $config['relyingPartyUUID'] ?? throw new \InvalidArgumentException('relyingPartyUUID is required'),
             relyingPartyName: $config['relyingPartyName'] ?? throw new \InvalidArgumentException('relyingPartyName is required'),
-            baseUrl: $config['baseUrl'] ?? SmartIdBaseUrl::PROD,
+            env: $config['env'] ?? SmartIdEnv::PROD,
             certificatePath: $config['certificatePath'] ?? null,
             caPath: $config['caPath'] ?? null,
             intPath: $config['intPath'] ?? null,
