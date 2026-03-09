@@ -21,8 +21,9 @@ use Vatsake\SmartIdV3\Enums\SignatureProtocol;
 use Vatsake\SmartIdV3\Exceptions\HttpException;
 use Vatsake\SmartIdV3\Features\Notification\NotificationSession;
 use Vatsake\SmartIdV3\Utils\PemFormatter;
-use Vatsake\SmartIdV3\Validators\SmartIdCertificateValidator;
+
 use Vatsake\SmartIdV3\Factories\SessionFactory;
+use Vatsake\SmartIdV3\Validators\Session\CertificateValidator;
 
 class SessionValidatorTest extends TestCase
 {
@@ -48,8 +49,12 @@ class SessionValidatorTest extends TestCase
             certificatePath: self::DEMO_TRUSTED_CERTIFICATES_PATH,
         );
 
-        $ref = new ReflectionClass(SmartIdCertificateValidator::class);
-        $instance = new SmartIdCertificateValidator($config);
+        $sessionMock = new class extends SigningSession {
+            public function __construct() {}
+        };
+
+        $ref = new ReflectionClass(CertificateValidator::class);
+        $instance = new CertificateValidator($sessionMock, $config);
         $property = $ref->getProperty('caBundlePath');
         $caBundlePath = $property->getValue($instance);
 

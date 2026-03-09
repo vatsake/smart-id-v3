@@ -34,19 +34,15 @@ class NotificationAuthClient extends ApiClient
 
     private function startAuth(NotificationRequest $req, string $endpoint): NotificationSession
     {
-        $params = $this->buildRequestParams($req->toArray());
+        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+            // Auth responses don't include vc, so we generate it from the signed data
+            $body['vc'] = [
+                'type' => 'numeric4',
+                'value' => VcCode::fromRpChallenge($req->getSignedData()),
+            ];
 
-        $response = $this->postJson($endpoint, $params);
-        $body = json_decode($response->getBody()->getContents(), true);
-
-        // Auth responses don't include vc, so we generate it from the signed data
-        $body['vc'] = [
-            'type' => 'numeric4',
-            'value' => VcCode::fromRpChallenge($req->getSignedData()),
-        ];
-
-        $response = NotificationResponse::fromArray($body);
-
-        return new NotificationSession($req, $response);
+            $response = NotificationResponse::fromArray($body);
+            return new NotificationSession($req, $response);
+        });
     }
 }

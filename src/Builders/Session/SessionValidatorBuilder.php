@@ -4,22 +4,19 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Builders\Session;
 
-use phpseclib3\Crypt\PublicKeyLoader;
-use phpseclib3\Crypt\RSA;
 use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\Session\SigningSession;
 use Vatsake\SmartIdV3\Session\AuthSession;
-use Vatsake\SmartIdV3\Validators\SmartIdCertificateValidator;
-use Vatsake\SmartIdV3\Validators\RevocationValidator;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Enums\SignatureAlgorithm;
 use Vatsake\SmartIdV3\Exceptions\Validation\InitialCallbackUrlParamMismatchException;
 use Vatsake\SmartIdV3\Exceptions\Validation\SessionSecretMismatchException;
 use Vatsake\SmartIdV3\Exceptions\Validation\SignatureException;
 use Vatsake\SmartIdV3\Exceptions\Validation\UserChallengeMismatchException;
 use Vatsake\SmartIdV3\Exceptions\Validation\ValidationException;
-use Vatsake\SmartIdV3\Utils\PemFormatter;
-use Vatsake\SmartIdV3\Utils\UrlSafe;
+use Vatsake\SmartIdV3\Validators\Session\CallbackUrlValidator;
+use Vatsake\SmartIdV3\Validators\Session\CertificateValidator;
+use Vatsake\SmartIdV3\Validators\Session\RevocationValidator as OcspRevocationValidator;
+use Vatsake\SmartIdV3\Validators\Session\SignatureValidator as SessionSignatureValidator;
 
 /**
  * Builder for validating Smart ID session responses.
@@ -209,218 +206,31 @@ class SessionValidatorBuilder
      * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
      * @throws OcspSignatureException if OCSP response signature validation fails
      * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
-     * @throws ValidationException for generic validation failures
+     * @throws ValidationException for generic validation failures (parent class of all validation exceptions)
      */
     public function check(): void
     {
         if ($this->validateSignature) {
-            $this->validateSignature();
+            (new SessionSignatureValidator($this->session, $this->config))->validate();
         }
 
         if ($this->validateCertificate) {
-            $this->validateSmartCertificate();
+            (new CertificateValidator($this->session, $this->config))->validate();
         }
 
         if ($this->validateCallbackUrl) {
-            $this->validateCallbackUrl();
+            (new CallbackUrlValidator(
+                $this->session,
+                $this->logger,
+                $this->sessionSecretDigest,
+                $this->userChallengeVerifier,
+                $this->expectedQueryParamValue,
+                $this->queryParamValue
+            ))->validate();
         }
 
         if ($this->validateRevocation) {
-            $this->validateRevocation();
+            (new OcspRevocationValidator($this->session, $this->config))->validate();
         }
-    }
-
-    /**
-     * @throws SignatureException if signature is invalid or cannot be decoded
-     */
-    private function validateSignature(): void
-    {
-        $signatureValue = base64_decode($this->session->signature->value, true);
-        if ($signatureValue === false) {
-            $this->logger?->error('Invalid base64 in signature value', ['signature' => $this->session->signature->value]);
-            throw new SignatureException('Invalid base64 in signature value');
-        }
-        if ($this->session instanceof SigningSession) {
-            $this->validateSigningSessionSignature($signatureValue);
-        } elseif ($this->session instanceof AuthSession) {
-            $this->validateAuthSessionSignature($signatureValue);
-        }
-        $this->logger?->debug('Signature validation successful.');
-    }
-
-    /**
-     * @throws SignatureException if signature verification fails
-     */
-    private function validateSigningSessionSignature(string $signatureValue): void
-    {
-        $verified = $this->verifySignature($signatureValue, $this->session->getSignedData());
-
-        if (!$verified) {
-            $this->logger?->error('Signature validation failed', ['signature' => $this->session->signature->value]);
-            throw new SignatureException();
-        }
-    }
-
-    /**
-     * @throws SignatureException if signature verification fails
-     */
-    private function validateAuthSessionSignature(string $signatureValue): void
-    {
-        $payload = $this->getAcspV2Payload();
-        $verified = $this->verifySignature($signatureValue, $payload);
-
-        if (!$verified) {
-            $this->logger?->error('Signature validation failed', ['signature' => $this->session->signature->value, 'payload' => $payload]);
-            throw new SignatureException();
-        }
-    }
-
-    private function verifySignature(string $signatureValue, string $payload): bool
-    {
-        if ($this->session->signature->signatureAlgorithm === SignatureAlgorithm::RSASSA_PSS) {
-            return $this->validateSignatureWithPSS($signatureValue, $payload);
-        } else {
-            return $this->validateSignatureWithPKCS1($signatureValue, $payload);
-        }
-    }
-
-    private function validateSignatureWithPKCS1(string $signatureValue, string $payload): bool
-    {
-        $signerPublicKey = openssl_pkey_get_public($this->session->certificate->getX509Resource());
-        $alg = substr($this->session->signature->signatureAlgorithm->value, 0, 6);
-        return openssl_verify($payload, $signatureValue, $signerPublicKey, $alg) === 1;
-    }
-
-    private function validateSignatureWithPSS(string $signatureValue, string $payload): bool
-    {
-        /** @var \phpseclib3\Crypt\RSA\PublicKey $pub */
-        $pub = PublicKeyLoader::load(PemFormatter::addPemHeaders($this->session->certificate->valueInBase64));
-        $pub = $pub->withPadding(RSA::SIGNATURE_PSS)
-            ->withHash($this->session->signature->signatureHashAlgorithm->getName())
-            ->withMGFHash($this->session->signature->signatureMaskGenHashAlgorithm->getName())
-            ->withSaltLength($this->session->signature->saltLength);
-
-        return $pub->verify($payload, $signatureValue);
-    }
-
-    /**
-     * Build the ACSP v2 payload that was signed during authentication.
-     *
-     * @return string The ACSP v2 payload
-     * @see https://sk-eid.github.io/smart-id-documentation/rp-api/signature_protocols.html#acsp_v2_digest_calculation
-     */
-    private function getAcspV2Payload(): string
-    {
-        $interactionsHash = base64_encode(hash('sha256', $this->session->getInteractions(), true));
-
-        return implode('|', [
-            $this->config->getScheme(),
-            $this->session->signatureProtocol->value,
-            $this->session->signature->serverRandom,
-            $this->session->getSignedData(),
-            $this->session->signature->userChallenge,
-            base64_encode($this->config->getRelyingPartyName()),
-            '',
-            $interactionsHash,
-            $this->session->interactionTypeUsed->value,
-            $this->session->getInitialCallbackUrl(),
-            $this->session->signature->flowType->value
-        ]);
-    }
-
-    /**
-     * @throws CertificateChainException if certificate chain is invalid
-     * @throws CertificatePolicyException if required policies are missing
-     * @throws CertificateQcException if QC statements are invalid
-     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
-     */
-    private function validateSmartCertificate(): void
-    {
-        $validator =  new SmartIdCertificateValidator($this->config);
-
-        $pem = $this->session->certificate->valueInBase64;
-        $expectedLevel = $this->session->certificate->certificateLevel;
-
-        if ($this->session instanceof SigningSession) {
-            $validator->validateSmartIdSigningCertificate($pem, $expectedLevel);
-        } elseif ($this->session instanceof AuthSession) {
-            $validator->validateAuthCertificate($pem, $expectedLevel);
-        }
-        $this->logger?->debug('SMART-ID certificate validation successful.');
-    }
-
-    /**
-     * @throws CertificateChainException if certificate chain is invalid
-     * @throws OcspCertificateRevocationException if certificate is revoked
-     * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
-     * @throws OcspSignatureException if OCSP response signature is invalid
-     * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
-     */
-    private function validateRevocation(): void
-    {
-        $validator = new RevocationValidator($this->config);
-        $pem = $this->session->certificate->valueInBase64;
-        $validator->validateCertificateRevocation($pem);
-        $this->logger?->debug('SMART-ID certificate revocation validation successful.');
-    }
-
-    /**
-     * @throws SessionSecretMismatchException if session secret doesn't match
-     * @throws InitialCallbackUrlParamMismatchException if parameter value doesn't match
-     * @throws UserChallengeMismatchException if user challenge doesn't match (auth only)
-     * @see https://sk-eid.github.io/smart-id-documentation/rp-api/callback_urls.html
-     */
-    private function validateCallbackUrl()
-    {
-        $this->validateSessionSecret();
-        $this->validateCallbackQueryParam();
-        if ($this->session instanceof AuthSession) {
-            $this->validateUserChallenge();
-        }
-    }
-
-    /**
-     * @throws SessionSecretMismatchException if digest doesn't match
-     */
-    private function validateSessionSecret()
-    {
-        $secret = base64_decode($this->session->getSessionSecret());
-        $hash = hash('sha256', $secret, true);
-        $urlSafeHash = UrlSafe::toUrlSafe(base64_encode($hash));
-
-        if ($urlSafeHash !== $this->sessionSecretDigest) {
-            $this->logger?->debug('Session secret digest validation failed', ['expected' => $this->sessionSecretDigest, 'actual' => $urlSafeHash]);
-            throw new SessionSecretMismatchException();
-        }
-
-        $this->logger?->debug('Session secret digest validation successful.');
-    }
-
-    /**
-     * @throws InitialCallbackUrlParamMismatchException if parameter value doesn't match
-     */
-    private function validateCallbackQueryParam()
-    {
-        if ($this->expectedQueryParamValue !== $this->queryParamValue) {
-            $this->logger?->debug('Callback URL query parameter validation failed', ['expected' => $this->expectedQueryParamValue, 'actual' => $this->queryParamValue]);
-            throw new InitialCallbackUrlParamMismatchException();
-        }
-        $this->logger?->debug('Callback URL query parameter validation successful.');
-    }
-
-    /**
-     * @throws UserChallengeMismatchException if challenge hash doesn't match
-     */
-    private function validateUserChallenge()
-    {
-        $userChallenge = $this->session->signature->userChallenge;
-        $challengeHash = hash('sha256', $this->userChallengeVerifier, true);
-        $urlSafeChallengeHash = UrlSafe::toUrlSafe(base64_encode($challengeHash));
-
-        if ($userChallenge !== $urlSafeChallengeHash) {
-            $this->logger?->debug('User challenge verifier validation failed', ['expected' => $userChallenge, 'actual' => $urlSafeChallengeHash]);
-            throw new UserChallengeMismatchException();
-        }
-        $this->logger?->debug('User challenge verifier validation successful.');
     }
 }

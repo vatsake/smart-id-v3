@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Requests\Contracts;
 
-interface DeviceLinkRequest
+interface DeviceLinkRequest extends ArrayableRequest
 {
     /**
      * Signature protocol, ACSP_V2 or RAW_DIGEST_SIGNATURE
@@ -30,6 +30,4 @@ interface DeviceLinkRequest
      * Initial callback URL, set for App2App/Web2App flows
      */
     public function getInitialCallbackUrl(): string;
-
-    public function toArray(): array;
 }

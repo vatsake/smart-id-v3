@@ -40,6 +40,7 @@ class RevocationValidator extends BaseCertificateValidator
      * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
      * @throws OcspSignatureException if OCSP response signature is invalid
      * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
+     * @throws OcspException if OCSP URL is not found
      */
     public function validateCertificateRevocation(string $pem): void
     {
@@ -192,7 +193,7 @@ class RevocationValidator extends BaseCertificateValidator
     private function validateKeyUsage(array $parsedCert)
     {
         $extKeyUsage = $parsedCert['extensions']['extendedKeyUsage'] ?? null;
-        if ($extKeyUsage !== 'OCSP Signing') {
+        if (stripos($extKeyUsage, 'OCSP Signing') === false) {
             $this->logger?->info('OCSP responder certificate does not have OCSP signing extended key usage.');
             throw new OcspKeyUsageException();
         }

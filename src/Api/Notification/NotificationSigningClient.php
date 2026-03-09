@@ -32,14 +32,11 @@ class NotificationSigningClient extends ApiClient
      */
     public function startLinkedSigning(LinkedRequest $req, string $documentNo): LinkedSession
     {
-        $params = $this->buildRequestParams($req->toArray());
-
         $endpoint = "/signature/notification/linked/{$documentNo}";
-        $response = $this->postJson($endpoint, $params);
-        $body = json_decode($response->getBody()->getContents(), true);
-        $response = LinkedResponse::fromArray($body);
-
-        return new LinkedSession($req, $response);
+        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+            $response = LinkedResponse::fromArray($body);
+            return new LinkedSession($req, $response);
+        });
     }
 
     /**
@@ -62,12 +59,9 @@ class NotificationSigningClient extends ApiClient
 
     private function sendSignRequest(NotificationRequest $req, string $endpoint): NotificationSession
     {
-        $params = $this->buildRequestParams($req->toArray());
-
-        $response = $this->postJson($endpoint, $params);
-        $body = json_decode($response->getBody()->getContents(), true);
-        $response = NotificationResponse::fromArray($body);
-
-        return new NotificationSession($req, $response);
+        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+            $response = NotificationResponse::fromArray($body);
+            return new NotificationSession($req, $response);
+        });
     }
 }

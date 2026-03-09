@@ -42,12 +42,9 @@ class DeviceLinkAuthClient extends ApiClient
 
     private function startAuth(DeviceLinkRequest $req, string $endpoint): DeviceLinkSession
     {
-        $params = $this->buildRequestParams($req->toArray());
-
-        $response = $this->postJson($endpoint, $params);
-        $body = json_decode($response->getBody()->getContents(), true);
-        $response = DeviceLinkResponse::fromArray($body);
-
-        return new DeviceLinkSession($req, $response, $this->config);
+        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+            $response = DeviceLinkResponse::fromArray($body);
+            return new DeviceLinkSession($req, $response, $this->config);
+        });
     }
 }

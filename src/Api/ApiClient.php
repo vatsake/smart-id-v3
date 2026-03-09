@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Api;
 
+use Composer\InstalledVersions;
 use Http\Discovery\Psr18Client;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -16,10 +17,11 @@ use Vatsake\SmartIdV3\Exceptions\HttpException;
 use Vatsake\SmartIdV3\Exceptions\MaintenanceException;
 use Vatsake\SmartIdV3\Exceptions\UnauthorizedException;
 use Vatsake\SmartIdV3\Exceptions\UserNotFoundException;
+use Vatsake\SmartIdV3\Requests\Contracts\ArrayableRequest;
 
 abstract class ApiClient
 {
-    private const USER_AGENT = 'smart-id-php-client/0.9.0';
+    private string $userAgent;
 
     private Psr18Client $client;
     protected ?LoggerInterface $logger;
@@ -28,6 +30,8 @@ abstract class ApiClient
     {
         $this->client = new Psr18Client($config->getHttpClient());
         $this->logger = $config->getLogger();
+        $version = InstalledVersions::getPrettyVersion('vatsake/smart-id-v3');
+        $this->userAgent = 'smart-id-php-client/' . $version;
     }
 
     /**
@@ -106,9 +110,25 @@ abstract class ApiClient
         ]);
     }
 
+    /**
+     * @template T
+     * @param ArrayableRequest $req
+     * @param string $endpoint
+     * @param callable(array): T $mapper
+     * @return T
+     */
+    protected function requestSession(ArrayableRequest $req, string $endpoint, callable $mapper)
+    {
+        $params = $this->buildRequestParams($req->toArray());
+        $response = $this->postJson($endpoint, $params);
+        $body = json_decode($response->getBody()->getContents(), true);
+
+        return $mapper($body);
+    }
+
     protected function sendRequest(RequestInterface $request): ResponseInterface
     {
-        $request = $request->withHeader('User-Agent', self::USER_AGENT);
+        $request = $request->withHeader('User-Agent', $this->userAgent);
         $response = $this->client->sendRequest($request);
 
         $isBinary = str_contains($response->getHeaderLine('Content-Type'), 'application/ocsp-response');
