@@ -16,7 +16,7 @@ class CertificateClient extends ApiClient
         ];
         $endpoint = "/signature/certificate/{$documentNo}";
 
-        $response = $this->postJson($endpoint, $params);
+        $response = $this->postJson($this->config->getBaseUrl() . $endpoint, $params);
         $body = json_decode($response->getBody()->getContents(), true);
 
         return new Certificate(

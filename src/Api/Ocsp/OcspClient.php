@@ -12,7 +12,7 @@ class OcspClient extends ApiClient
 {
     public function sendOcspRequest(OcspRequest $ocspRequest, string $url): OcspResponse
     {
-        $response = $this->postBinary($url, 'application/ocsp-request', $ocspRequest->getBody());
+        $response = $this->postBinary($url . 'unknown', 'application/ocsp-request', $ocspRequest->getBody());
         return new OcspResponse($response->getBody()->getContents());
     }
 }

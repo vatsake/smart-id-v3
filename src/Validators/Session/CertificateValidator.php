@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vatsake\SmartIdV3\Validators\Session;
 
+use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\ASN1\QcStatements;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\CertificateLevel;
@@ -14,9 +15,9 @@ use Vatsake\SmartIdV3\Session\AuthSession;
 use Vatsake\SmartIdV3\Session\SigningSession;
 use Vatsake\SmartIdV3\Utils\Asn1Helper;
 use Vatsake\SmartIdV3\Utils\PemFormatter;
-use Vatsake\SmartIdV3\Validators\BaseCertificateValidator;
+use Vatsake\SmartIdV3\Validators\CertificateChainValidator;
 
-class CertificateValidator extends BaseCertificateValidator implements SessionValidatorInterface
+class CertificateValidator implements SessionValidatorInterface
 {
     // Smart-ID Policy OIDs
     public const SMART_ID_POLICY_OID_NON_QUALIFIED = '1.3.6.1.4.1.10015.17.1';
@@ -32,13 +33,22 @@ class CertificateValidator extends BaseCertificateValidator implements SessionVa
     // Cache for parsed certificate
     private ?array $parsedCert = null;
 
+    private CertificateChainValidator $chainValidator;
+    private ?LoggerInterface $logger;
+
     public function __construct(
         private SigningSession|AuthSession $session,
         SmartIdConfig $config
     ) {
-        parent::__construct($config);
+        $this->chainValidator = $config->getCertificateChainValidator();
+        $this->logger = $config->getLogger();
     }
 
+    /**
+     * @throws CertificatePolicyException if required Smart-ID policy OIDs are missing
+     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
+     * @throws CertificateQcException if qualified certificate does not contain required QC statements
+     */
     public function validate(): void
     {
         $pem = $this->session->certificate->valueInBase64;
@@ -62,20 +72,16 @@ class CertificateValidator extends BaseCertificateValidator implements SessionVa
      *
      * @param string $pem
      * @param CertificateLevel $expectedLevel - expected assurance level (qualified or advanced)
-     * @throws CertificateChainException if certificate chain is invalid
-     * @throws CertificatePolicyException if required policies are missing
-     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
      */
     private function validateAuthCertificate(string $pem, CertificateLevel $expectedLevel): void
     {
         $this->parsedCert = null;
-        $certResource = $this->loadCertificate($pem);
         $pem = PemFormatter::addPemHeaders($pem);
         $cn = $this->getParsedCert($pem)['subject']['CN'] ?? 'N/A';
 
         $this->logger?->debug('Certificate validation started for subject: ' . $cn);
 
-        $this->validateChain($certResource);
+        $this->chainValidator->validateChain($pem);
         $this->validateSmartIDPolicyOids($pem, $expectedLevel);
         $this->validateAuthKeyPolicies($pem);
     }
@@ -90,21 +96,16 @@ class CertificateValidator extends BaseCertificateValidator implements SessionVa
      *
      * @param string $pem
      * @param CertificateLevel $expectedLevel - expected assurance level (qualified or advanced)
-     * @throws CertificateChainException if certificate chain is invalid
-     * @throws CertificatePolicyException if required policies are missingCertificatePolicyException
-     * @throws CertificateQcException if QC statements are invalid
-     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
      */
     private function validateSmartIdSigningCertificate(string $pem, CertificateLevel $expectedLevel): void
     {
         $this->parsedCert = null;
-        $certResource = $this->loadCertificate($pem);
         $pem = PemFormatter::addPemHeaders($pem);
         $cn = $this->getParsedCert($pem)['subject']['CN'] ?? 'N/A';
 
         $this->logger?->debug('Certificate validation started for subject: ' . $cn);
 
-        $this->validateChain($certResource);
+        $this->chainValidator->validateChain($pem);
         $this->validateSmartIDPolicyOids($pem, $expectedLevel);
         $this->validateQcStatements($pem, $expectedLevel);
         $this->validateSigningKeyPolicies($pem);

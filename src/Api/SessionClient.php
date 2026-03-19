@@ -60,8 +60,8 @@ class SessionClient extends ApiClient
 
     private function getSingleSessionData(int $timeoutMs): array
     {
-        $response = $this->getJson(
-            "/session/{$this->session->getSessionId()}",
+        $response = $this->get(
+            $this->config->getBaseUrl() . "/session/{$this->session->getSessionId()}",
             ['timeoutMs' => $timeoutMs]
         );
 

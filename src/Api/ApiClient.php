@@ -56,10 +56,7 @@ abstract class ApiClient
         return $this->sendRequest($request);
     }
 
-    /**
-     * Send a GET request
-     */
-    protected function getJson(string $endpoint, array $queryParams = []): ResponseInterface
+    protected function get(string $endpoint, array $queryParams = []): ResponseInterface
     {
         $url = $this->buildUrl($endpoint, $queryParams);
         $request = $this->client->createRequest('GET', $url);
@@ -73,7 +70,7 @@ abstract class ApiClient
     }
 
     /**
-     * Send a binary request (for OCSP and similar)
+     * Send a binary request (for OCSP)
      */
     protected function postBinary(string $url, string $contentType, string $body): ResponseInterface
     {
@@ -93,7 +90,7 @@ abstract class ApiClient
 
     private function buildUrl(string $endpoint, array $queryParams = []): string
     {
-        $url = $this->config->getBaseUrl() . $endpoint;
+        $url = $endpoint;
 
         if (!empty($queryParams)) {
             $url .= '?' . http_build_query($queryParams);
@@ -131,7 +128,7 @@ abstract class ApiClient
         $request = $request->withHeader('User-Agent', $this->userAgent);
         $response = $this->client->sendRequest($request);
 
-        $isBinary = str_contains($response->getHeaderLine('Content-Type'), 'application/ocsp-response');
+        $isBinary = !str_contains($response->getHeaderLine('Content-Type'), 'application/json');
 
         $this->logger?->debug('Received response', [
             'url' => (string) $request->getUri(),

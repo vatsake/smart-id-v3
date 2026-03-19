@@ -15,7 +15,7 @@ use Vatsake\SmartIdV3\Exceptions\Validation\UserChallengeMismatchException;
 use Vatsake\SmartIdV3\Exceptions\Validation\ValidationException;
 use Vatsake\SmartIdV3\Validators\Session\CallbackUrlValidator;
 use Vatsake\SmartIdV3\Validators\Session\CertificateValidator;
-use Vatsake\SmartIdV3\Validators\Session\RevocationValidator as OcspRevocationValidator;
+use Vatsake\SmartIdV3\Validators\Session\RevocationValidator;
 use Vatsake\SmartIdV3\Validators\Session\SignatureValidator as SessionSignatureValidator;
 
 /**
@@ -24,7 +24,7 @@ use Vatsake\SmartIdV3\Validators\Session\SignatureValidator as SessionSignatureV
  * Provides configurable validation of authentication and signing sessions with support for:
  * - Signature verification (PKCS#1 v1.5 and PSS padding schemes)
  * - Certificate chain validation and Smart-ID policy compliance
- * - Certificate revocation status via OCSP
+ * - Certificate revocation status via OCSP and CRL checks
  * - Callback URL parameter validation for Web2App and App2App flows
  *
  * @see https://sk-eid.github.io/smart-id-documentation/rp-api/response_verification.html
@@ -91,6 +91,8 @@ class SessionValidatorBuilder
      * Certificate revocation validation queries OCSP responders to verify the certificate has
      * not been revoked. OCSP responses include time validation, so system time/date must be
      * accurate. Includes a reasonable clock skew tolerance (5 minutes).
+     *
+     * If OCSP validation fails CRL validation is attempted as a fallback.
      *
      * @param bool $enabled Enable revocation validation (default: false)
      * @return self
@@ -193,20 +195,23 @@ class SessionValidatorBuilder
      * All enabled validators must pass or an exception is thrown.
      * If any validator throws an exception, subsequent validators are not executed.
      *
-     * @return void
-     * @throws SignatureException if signature verification fails
-     * @throws CertificateChainException if certificate chain validation fails
-     * @throws CertificatePolicyException if required certificate policies are missing
-     * @throws CertificateQcException if QC statements are invalid
-     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
-     * @throws SessionSecretMismatchException if session secret digest doesn't match
-     * @throws InitialCallbackUrlParamMismatchException if callback URL parameter doesn't match
-     * @throws UserChallengeMismatchException if user challenge doesn't match (auth only)
+     * @throws SignatureException if signature validation fails
+     * @throws CertificateChainException if certificate chain is invalid
      * @throws OcspCertificateRevocationException if certificate is revoked
      * @throws OcspResponseTimeException if OCSP response time is outside acceptable window
-     * @throws OcspSignatureException if OCSP response signature validation fails
+     * @throws OcspSignatureException if OCSP response signature is invalid
      * @throws OcspKeyUsageException if OCSP responder certificate key usage is invalid
-     * @throws ValidationException for generic validation failures (parent class of all validation exceptions)
+     * @throws OcspUrlMissingException if OCSP URL is not found
+     * @throws CrlRevocationException if certificate is revoked according to CRL or CRL request fails
+     * @throws CrlSignatureException if CRL signature is invalid
+     * @throws CrlUrlMissingException if CRL URL is not found
+     * @throws UnknownSignatureAlgorithmOidException if signature algorithm OID is unknown
+     * @throws CertificatePolicyException if required Smart-ID policy OIDs are missing
+     * @throws CertificateKeyUsageException if key usage or extended key usage is invalid
+     * @throws CertificateQcException if qualified certificate does not contain required QC statements
+     * @throws SessionSecretMismatchException if session secret digest does not match expected value
+     * @throws InitialCallbackUrlParamMismatchException if callback URL query parameter does not match expected value
+     * @throws UserChallengeMismatchException if user challenge verifier does not match expected value
      */
     public function check(): void
     {
@@ -230,7 +235,7 @@ class SessionValidatorBuilder
         }
 
         if ($this->validateRevocation) {
-            (new OcspRevocationValidator($this->session, $this->config))->validate();
+            (new RevocationValidator($this->config, $this->session))->validate();
         }
     }
 }

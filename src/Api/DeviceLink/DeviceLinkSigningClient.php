@@ -44,7 +44,7 @@ class DeviceLinkSigningClient extends ApiClient
 
     private function sendSignRequest(DeviceLinkRequest $req, string $endpoint): DeviceLinkSession
     {
-        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+        return $this->requestSession($req, $this->config->getBaseUrl() . $endpoint, function (array $body) use ($req) {
             $sessionResponse = DeviceLinkResponse::fromArray($body);
             return new DeviceLinkSession($req, $sessionResponse, $this->config);
         });

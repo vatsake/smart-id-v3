@@ -21,9 +21,13 @@ class CallbackUrlValidator implements SessionValidatorInterface
         private string $userChallengeVerifier,
         private string $expectedQueryParamValue,
         private string $queryParamValue
-    ) {
-    }
+    ) {}
 
+    /**
+     * @throws SessionSecretMismatchException if session secret digest does not match expected value
+     * @throws InitialCallbackUrlParamMismatchException if callback URL query parameter does not match expected value
+     * @throws UserChallengeMismatchException if user challenge verifier does not match expected value
+     */
     public function validate(): void
     {
         $this->validateSessionSecret();

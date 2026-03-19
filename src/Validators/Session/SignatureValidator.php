@@ -25,6 +25,9 @@ class SignatureValidator implements SessionValidatorInterface
         $this->logger = $config->getLogger();
     }
 
+    /**
+     * @throws SignatureException if signature validation fails
+     */
     public function validate(): void
     {
         $signatureValue = base64_decode($this->session->signature->value, true);

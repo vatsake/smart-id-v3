@@ -7,7 +7,7 @@
 > [!WARNING]
 > **Development Status**
 >
-> This library is currently under active development and has not yet reached a stable release.
+> This library is currently under development and has not yet reached a stable release.
 
 A PHP library for interacting with the [Smart ID v3 API](https://sk-eid.github.io/smart-id-documentation/rp-api/introduction.html) with support for authentication, digital signatures, and certificate management.
 
@@ -36,44 +36,58 @@ A PHP library for interacting with the [Smart ID v3 API](https://sk-eid.github.i
 ## Quick Start
 
 ```php
+use Cache\Adapter\Filesystem\FilesystemCachePool;
+use League\Flysystem\Adapter\Local;
+use League\Flysystem\Filesystem;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
 use Vatsake\SmartIdV3\Config\SmartIdConfig;
 use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 use Vatsake\SmartIdV3\SmartId;
-use Vatsake\SmartIdV3\Enums\DeviceLinkType;
 use Vatsake\SmartIdV3\Enums\HashAlgorithm;
 use Vatsake\SmartIdV3\Utils\RpChallenge;
-use Vatsake\SmartIdV3\Requests\DeviceLinkAuthRequest;
+use Vatsake\SmartIdV3\Requests\NotificationAuthRequest;
+
+$filesystemAdapter = new Local(__DIR__);
+$filesystem = new Filesystem($filesystemAdapter);
+
+$pool = new FilesystemCachePool($filesystem);
+
+$log = new Logger('test');
+$log->pushHandler(new StreamHandler(__DIR__ . '/log.log'));
 
 // 1. Initialize client
 $config = new SmartIdConfig(
-    relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
     relyingPartyName: 'DEMO',
+    relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
     env: SmartIdEnv::DEMO,
-    certificatePath: '/path/to/mixed/certificates/folder'
+    certificatePath: __DIR__ . '/certificates',
+    cache: $pool,
+    logger: $log // Optional
 );
 $smartId = new SmartId($config);
 
 // 2. Create authentication request
 $rpChallenge = RpChallenge::generate();
-$request = DeviceLinkAuthRequest::builder()
-    ->withInteractions('Confirm login', 'You are signing into "myapp"')
+$request = NotificationAuthRequest::builder()->withInteractions('Hello world')
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->build();
 
-// 3. Start device link authentication
-$session = $smartId->deviceLink()->authentication()->startAnonymous($request);
+// 3. Start notification flow authentication
+$session = $smartId->notification()
+    ->authentication()
+    ->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
 
-// 4. Send this to frontend every second
-$session->getDeviceLink(DeviceLinkType::QR);
-
-// 5. Poll for session completion
+// 4. Poll for session completion
 $response = $smartId->session($session)
-    ->withPolling(1000) // Poll every 1 second
-    ->getAuthSession(30000); // 30 second timeout
+    ->withPolling(1000) // Poll every 1000ms
+    ->getAuthSession(30000); // 30000ms timeout
 
-// 6. Validate response
+// 5. Validate response
 $response->validate()
-    ->withCertificateValidation(true)
+    ->withCertificateValidation()
+    ->withRevocationValidation()
+    ->withSignatureValidation()
     ->check();
 echo "Authentication successful!";
 ```
@@ -86,7 +100,8 @@ Install via Composer:
 composer require vatsake/smart-id-v3
 ```
 
-This library uses `php-http/discovery` to automatically detect and use PSR-18 HTTP clients. You'll need to install a compatible HTTP client implementation:
+> [!NOTE]
+> This library uses `php-http/discovery` to automatically detect and use PSR-18 HTTP clients. You'll need to install a compatible HTTP client implementation:
 
 ```bash
 composer require guzzlehttp/guzzle
@@ -94,71 +109,52 @@ composer require guzzlehttp/guzzle
 
 Other compatible clients: `symfony/http-client`, `curl-client`, etc.
 
+> [!NOTE]
+> This library requires a PSR-6 cache implementation. You must install a compatible cache adapter:
+
+```bash
+composer require cache/filesystem-adapter
+```
+
+Other compatible clients: `cache/redis-adapter`, `cache/memcached-adapter`, etc.
+
 ## Requirements
 
-- PHP >= 8.1
-- PSR-18 HTTP Client implementation
-- PSR-17 HTTP Factory implementation
+- PHP ^8.1
+- PSR-18 HTTP client implementation
+- PSR-6 cache implementation
 
 ## Configuration
 
 ### Certificate Setup
 
-The library requires certificates to validate certificate chains. Choose one of two setup modes:
+The library requires intermediate and authority certificates to validate certificate chains.
 
-**Option 1: Direct Paths (Recommended)**
+**Certificate format/location:**
 
-Organize your certificates into separate directories for CA and intermediate certificates:
+- All certificates must be in PEM format (text-based, not binary DER)
+- Place all trusted certificates in a single directory
+- Use an absolute path like `/path/to/certificates` when configuring `certificatePath`
 
-- Provide separate directories for CA and intermediate certificates using `caPath` and `intPath`
-- Use this when certificates are already organized
-
-**Option 2: Auto-Separation**
-
-Use a single directory with mixed certificates and let the library organize them:
-
-- Provide a single `certificatePath` with mixed certificates
-- The library automatically separates them based on certificate properties
-
-**Caching Details:**
-
-- All certificates must be in **PEM** format
-- The library validates certificate chains using `openssl_x509_checkpurpose()`
-- Certificates are automatically cached in `{temp-dir}/smart-id-cert-bundles/{hash}/` for performance
-- The hash is computed from certificate file contents, ensuring cache integrity
-- When certificates are added, removed, or modified, the hash changes automatically
-- A new bundle folder is generated on next initialization
-- Old bundles are automatically cleaned up
+**Smart ID Certificates:**
+Certificates are available to download at [Smart ID documentation](https://www.skidsolutions.eu/resources/certificates/).
 
 ### Client Initialization
 
 Initialize the Smart ID client with `SmartIdConfig`:
 
-**Using Direct Certificate Paths:**
-
 ```php
-use Vatsake\SmartIdV3\Config\SmartIdConfig;
-use Vatsake\SmartIdV3\Enums\SmartIdEnv;
-
 $config = new SmartIdConfig(
     relyingPartyName: 'DEMO',
     relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
     env: SmartIdEnv::DEMO,
-    caPath: '/path/to/ca-certificates',
-    intPath: '/path/to/intermediate-certificates'
+    certificatePath: '/path/to/trusted-certificates',
+	cache: $cache // \Psr\Cache\CacheItemPoolInterface
 );
 ```
 
-**Using Auto-Separation:**
-
-```php
-$config = new SmartIdConfig(
-    relyingPartyUUID: 'DEMO',
-    relyingPartyName: '00000000-0000-4000-8000-000000000000',
-    env: SmartIdEnv::DEMO,
-    certificatePath: '/path/to/mixed-certificates'
-);
-```
+> [!NOTE]
+> Cache is only used for CRL (Certificate Revocation List) caching to optimize revocation validation performance.
 
 **With HTTP Client and Logging:**
 
@@ -167,15 +163,20 @@ For production deployments, configure a custom HTTP client and enable logging:
 ```php
 $client = new \GuzzleHttp\Client();
 $log = new Monolog\Logger('smart-id');
-$log->pushHandler(new Monolog\Handler\StreamHandler('php://stdout'));
+$log->pushHandler(new StreamHandler(__DIR__ . '/log.log'));
+
+$filesystemAdapter = new Local(__DIR__);
+$filesystem = new Filesystem($filesystemAdapter);
+$pool = new FilesystemCachePool($filesystem);
 
 $config = new SmartIdConfig(
-    relyingPartyUUID: 'DEMO',
-    relyingPartyName: '00000000-0000-4000-8000-000000000000',
+    relyingPartyName: 'DEMO',
+    relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
     env: SmartIdEnv::DEMO,
     certificatePath: '/path/to/certificates',
     httpClient: $client,
-    logger: $log
+    logger: $log,
+	cache: $pool
 );
 ```
 
@@ -256,7 +257,6 @@ $request = DeviceLinkAuthRequest::builder()
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
 $session = $smartId->deviceLink()->authentication()->startAnonymous($request);
 
@@ -264,8 +264,8 @@ $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getAuthSession(10000); // Poll timeout on SMART-ID side; you might need to specify your httpclient's timeout accordingly
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getAuthSession(10000); // Maximum time in milliseconds to wait for session completion, you might need to specify your httpclient's timeout accordingly
 
 // During status polling, refresh QR-code every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -304,7 +304,6 @@ $request = DeviceLinkAuthRequest::builder()
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
 $session = $smartId->deviceLink()->authentication()->startEtsi($request, $identifier);
 
@@ -312,8 +311,8 @@ $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getAuthSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getAuthSession(10000); // Maximum time in milliseconds to wait for session completion
 
 // During status polling, refresh QR-code every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -344,16 +343,16 @@ $request = DeviceLinkAuthRequest::builder()
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->deviceLink()->authentication()->startDocument($request, 'PNOEE-40404040009-MOCK-Q');
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getAuthSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getAuthSession(10000); // Maximum time in milliseconds to wait for session completion
 
 // During status polling, refresh QR-code every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -379,7 +378,6 @@ $smartId = new SmartId($config);
 $request = DeviceLinkCertChoiceRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
 $session = $smartId->deviceLink()->signing()->startAnonymousCertChoice($request);
 
@@ -387,8 +385,8 @@ $_SESSION['session'] = $session; // Save it for later
 
 // Get certificate selection result
 $response = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getCertChoiceSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getCertChoiceSession(10000); // Maximum time in milliseconds to wait for session completion
 $_SESSION['documentNo'] = $response->documentNumber; // Save it for later
 
 // During status polling, refresh QR-code every second
@@ -405,15 +403,15 @@ $request = LinkedRequest::builder()
     ->withData($dataToSign, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $documentNo = $_SESSION['documentNo'];
 $smartId->notification()->signing()->startLinkedSigning($request, $documentNo);
 
 // Get session status
 $response = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 ```
 
 #### Device Link - Identified signature - National ID
@@ -448,16 +446,16 @@ $request = DeviceLinkSigningRequest::builder()
     ->withData($dataToSign, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->deviceLink()->signing()->startEtsi($request, $identifier);
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 
 // During status polling, refresh QR-code every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -487,16 +485,16 @@ $request = DeviceLinkSigningRequest::builder()
     ->withData($dataToSign, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
     ->withInitialCallbackUrl('https://localhost/callback') // Mandatory for Web2App/App2App flows
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->deviceLink()->signing()->startDocument($request, 'PNOEE-40404040009-MOCK-Q');
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 
 // During status polling, refresh QR-code every second
 $session->getDeviceLink(DeviceLinkType::QR);
@@ -540,16 +538,16 @@ $request = NotificationAuthRequest::builder()
     )
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->notification()->authentication()->startEtsi($request, $identifier);
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getAuthSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getAuthSession(10000); // Maximum time in milliseconds to wait for session completion
 ```
 
 #### Notification - Authentication - Document Number
@@ -575,16 +573,16 @@ $request = NotificationAuthRequest::builder()
     )
     ->withRpChallenge($rpChallenge, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->notification()->authentication()->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getAuthSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getAuthSession(10000); // Maximum time in milliseconds to wait for session completion
 ```
 
 #### Notification - Signature - National ID
@@ -617,16 +615,16 @@ $request = NotificationSigningRequest::builder()
     )
     ->withData($dataToSign, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->notification()->signing()->startEtsi($request, $identifier);
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 ```
 
 #### Notification - Signature - Document Number
@@ -651,16 +649,16 @@ $request = NotificationSigningRequest::builder()
     )
     ->withData($dataToSign, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->notification()->signing()->startDocument($request, 'PNOEE-40504040001-DEM0-Q');
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get session status
 $ses = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 ```
 
 #### Notification - Signature with Certificate Selection - National ID
@@ -689,16 +687,16 @@ $identifier = SemanticsIdentifier::builder()
 // Step 1: Let user choose certificate
 $request = NotificationCertChoiceRequest::builder()
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
+
 $session = $smartId->notification()->signing()->startCertChoice($request, $identifier);
 
 $_SESSION['session'] = $session; // Save it for later
 
 // Get certificate selection result
 $response = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getCertChoiceSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getCertChoiceSession(10000); // Maximum time in milliseconds to wait for session completion
 $_SESSION['documentNo'] = $response->documentNumber; // Save it for later
 
 // Step 2: Sign with selected certificate (after successful cert-choice)
@@ -710,7 +708,6 @@ $request = NotificationSigningRequest::builder()
     )
     ->withData($dataToSign, HashAlgorithm::SHA_256)
     ->withCertificateLevel(CertificateLevel::QUALIFIED) // Optional
-    ->withRequestProperties(true) // Optional; Whether SMART-ID adds user's IP to response
     ->build();
 
 $documentNo = $_SESSION['documentNo'];
@@ -718,8 +715,8 @@ $session = $smartId->notification()->signing()->startDocument($request, $documen
 
 // Get session status
 $response = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 ```
 
 ### Certificate Retrieval
@@ -748,14 +745,15 @@ use Vatsake\SmartIdV3\Exceptions\Validation\ValidationException;
 
 /** @var Vatsake\SmartIdV3\Session\SigningSession */
 $response = $smartId->session($session)
-    ->withPolling(1000) // Optional, will poll until session is completed
-    ->getSigningSession(10000); // Poll timeout on SMART-ID side
+    ->withPolling(1000) // Poll every 1000ms (optional, will repeat polling automatically)
+    ->getSigningSession(10000); // Maximum time in milliseconds to wait for session completion
 
 try {
     $response->validate()
-        ->withSignatureValidation(true)       // Validates the signature (enabled by default)
+        ->withSignatureValidation(true)      // Validates the signature (enabled by default)
         ->withCertificateValidation(true)     // Validates certificate chain
-        ->withRevocationValidation(true)      // Checks if certificate is revoked
+        ->withRevocationValidation(true)   // Checks if certificate is revoked (OCSP or CRL)
+		->withCallbackUrlValidationParameters(...) // Validate callback url in Web2App/App2App flows
         ->check();
 
     // Response is valid, proceed with your logic
@@ -783,16 +781,23 @@ try {
 } catch (ServerErrorException $e) {
     // Smart-ID server error
 } catch (ValidationException $e) {
-    // Validation of the response failed
-    // Specific validation exceptions:
-    // - CertificateChainException: Certificate chain validation failed
-    // - OcspCertificateRevocationException: Certificate is revoked
-    // - OcspKeyUsageException: OCSP responder cert missing key usage
-    // - OcspResponseTimeException: OCSP response time outside acceptable range
-    // - OcspSignatureException: OCSP response signature validation failed
-    // - CertificateKeyUsageException: Certificate key usage validation failed
-    // - CertificatePolicyException: Certificate missing required policy OIDs
-    // - CertificateQcException: Certificate missing required QC statements
+    // - SignatureException if signature validation fails
+    // - CertificateChainException if certificate chain is invalid
+    // - OcspCertificateRevocationException if certificate is revoked
+    // - OcspResponseTimeException if OCSP response time is outside acceptable window
+    // - OcspSignatureException if OCSP response signature is invalid
+    // - OcspKeyUsageException if OCSP responder certificate key usage is invalid
+    // - OcspUrlMissingException if OCSP URL is not found
+    // - CrlRevocationException if certificate is revoked according to CRL or CRL request fails
+    // - CrlSignatureException if CRL signature is invalid
+    // - CrlUrlMissingException if CRL URL is not found
+    // - UnknownSignatureAlgorithmOidException if signature algorithm OID is unknown
+    // - CertificatePolicyException if required Smart-ID policy OIDs are missing
+    // - CertificateKeyUsageException if key usage or extended key usage is invalid
+    // - CertificateQcException if qualified certificate does not contain required QC statements
+    // - SessionSecretMismatchException if session secret digest does not match expected value
+    // - InitialCallbackUrlParamMismatchException if callback URL query parameter does not match expected value
+    // - UserChallengeMismatchException if user challenge verifier does not match expected value
 } catch (Exception $e) {
     // Something unexpected went wrong
 }
@@ -832,20 +837,26 @@ Exceptions are organized in a hierarchy to help with error handling:
 
 **Validation Exceptions** - Certificate and signature validation failures:
 
-| Exception                                  | Description                                                |
-| ------------------------------------------ | ---------------------------------------------------------- |
-| `ValidationException`                      | Generic validation failure (parent of others below).       |
-| `CertificateChainException`                | Certificate chain validation failed. Not trusted.          |
-| `OcspCertificateRevocationException`       | OCSP status indicates certificate is revoked.              |
-| `OcspKeyUsageException`                    | OCSP responder certificate missing OCSP signing key usage. |
-| `OcspResponseTimeException`                | OCSP response time outside acceptable clock skew window.   |
-| `OcspSignatureException`                   | OCSP response signature validation failed.                 |
-| `CertificateKeyUsageException`             | Certificate key usage validation failed.                   |
-| `CertificatePolicyException`               | Certificate missing required Smart-ID policy OIDs.         |
-| `CertificateQcException`                   | Certificate missing required QC statements.                |
-| `InitialCallbackUrlParamMismatchException` | Initial callback URL unique parameter mismatch.            |
-| `SessionSecretMismatchException`           | Session secret mismatch.                                   |
-| `UserChallengeMismatchException`           | User challenge mismatch.                                   |
+| Exception                                  | Description                                                    |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `ValidationException`                      | Generic validation failure (parent of others below).           |
+| `SignatureException`                       | Signature validation failed.                                   |
+| `OcspUrlMissingException`                  | OCSP responder URL is not found in certificate.                |
+| `CrlRevocationException`                   | Certificate is revoked according to CRL or CRL request failed. |
+| `CrlSignatureException`                    | CRL signature validation failed.                               |
+| `CrlUrlMissingException`                   | CRL URL is not found in certificate.                           |
+| `UnknownSignatureAlgorithmOidException`    | Signature algorithm OID is unknown or not supported.           |
+| `CertificateChainException`                | Certificate chain validation failed. Not trusted.              |
+| `OcspCertificateRevocationException`       | OCSP status indicates certificate is revoked.                  |
+| `OcspKeyUsageException`                    | OCSP responder certificate missing OCSP signing key usage.     |
+| `OcspResponseTimeException`                | OCSP response time outside acceptable clock skew window.       |
+| `OcspSignatureException`                   | OCSP response signature validation failed.                     |
+| `CertificateKeyUsageException`             | Certificate key usage validation failed.                       |
+| `CertificatePolicyException`               | Certificate missing required Smart-ID policy OIDs.             |
+| `CertificateQcException`                   | Certificate missing required QC statements.                    |
+| `InitialCallbackUrlParamMismatchException` | Initial callback URL unique parameter mismatch.                |
+| `SessionSecretMismatchException`           | Session secret mismatch.                                       |
+| `UserChallengeMismatchException`           | User challenge mismatch.                                       |
 
 ## Best Practices
 
@@ -868,11 +879,15 @@ If you're getting `CertificateChainException` or other certificate errors:
 
 **OCSP validation errors**
 
+If you encounter out-of-memory errors during revocation checks:
+
+1. Increase memory. Certificate Revocation Lists (CRLs) can be large files containing tens of thousands of revoked certificate entries. During parsing, these are loaded into memory, which consume significant resources.
+
 If you're getting `OcspCertificateRevocationException` or other OCSP errors:
 
 1. Verify your system has correct time/date (OCSP responses include time validation)
 2. Check network connectivity to OCSP responders
-3. Temporarily disable revocation validation for debugging: `->withRevocationValidation(false)`
+3. Enable debug logging
 
 **Errors when scanning QR code**
 
@@ -902,9 +917,12 @@ $config = new SmartIdConfig(
 
 ** How would I know if user is on mobile? **
 
+> **Note:** This is relevant for Web2App flows where you may want to adjust UX based on device type.
+
 There really isn't a foolproof method. One way is using the User-Agent header, but it can be spoofed or changed by the user.
 
 ```js
+// Frontend code - JavaScript
 function isOnMobile() {
   const ua = navigator.userAgent
   return /mobi|iphone|ipod|ipad|android/i.test(ua)
@@ -933,5 +951,6 @@ composer test
 ## Todo
 
 - Figure out why mocking in DEMO doesn't work
+- Rewrite tests
 - Test App2App and Web2App flows
 - More stuff

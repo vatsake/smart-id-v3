@@ -33,7 +33,7 @@ class NotificationSigningClient extends ApiClient
     public function startLinkedSigning(LinkedRequest $req, string $documentNo): LinkedSession
     {
         $endpoint = "/signature/notification/linked/{$documentNo}";
-        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+        return $this->requestSession($req, $this->config->getBaseUrl() . $endpoint, function (array $body) use ($req) {
             $response = LinkedResponse::fromArray($body);
             return new LinkedSession($req, $response);
         });
@@ -59,7 +59,7 @@ class NotificationSigningClient extends ApiClient
 
     private function sendSignRequest(NotificationRequest $req, string $endpoint): NotificationSession
     {
-        return $this->requestSession($req, $endpoint, function (array $body) use ($req) {
+        return $this->requestSession($req, $this->config->getBaseUrl() . $endpoint, function (array $body) use ($req) {
             $response = NotificationResponse::fromArray($body);
             return new NotificationSession($req, $response);
         });

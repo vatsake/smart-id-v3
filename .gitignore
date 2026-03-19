@@ -1,7 +1,8 @@
 /.phpunit.cache
 /composer.lock
 /coverage
-/phpunit.xml
 /vendor/
 docker-compose.yml
 dockerfile
+/cache
+/certificates
