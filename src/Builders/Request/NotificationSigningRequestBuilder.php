@@ -26,7 +26,7 @@ class NotificationSigningRequestBuilder extends RequestBuilder
     {
         // We need the original data for validation later
         $this->originalData = $rawData;
-        $this->digest = base64_encode(hash($hashAlg->getName(), $rawData, true));
+        $this->digest = base64_encode(hash($hashAlg->getPhpName(), $rawData, true));
         $this->hashAlgorithm = $hashAlg;
         return $this;
     }

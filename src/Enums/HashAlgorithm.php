@@ -32,4 +32,12 @@ enum HashAlgorithm: string
     {
         return strtolower(str_replace('-', '', $this->value));
     }
+
+    public function getPhpName(): string
+    {
+        if (str_starts_with($this->value, 'SHA3-')) {
+            return strtolower($this->value);
+        }
+        return $this->getName();
+    }
 }
