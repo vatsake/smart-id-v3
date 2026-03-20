@@ -69,12 +69,20 @@ class CertificateChainValidator
 
         if (empty($chain)) {
             $this->logger?->info('Certificate chain validation failed: no chain available for subject: ' . $cn);
-            throw new CertificateChainException();
+            throw new CertificateChainException($cn);
         }
 
         if (!$this->x509->validateSignature()) {
             $this->logger?->info('Certificate chain validation failed for subject: ' . $cn);
-            throw new CertificateChainException();
+            throw new CertificateChainException($cn);
+        }
+
+        foreach ($chain as $cert) {
+            $cn = $cert->getDN(X509::DN_STRING);
+            if (!$cert->validateDate()) {
+                $this->logger?->info('Certificate chain validation failed: certificate expired for subject: ' . $cn);
+                throw new CertificateChainException($cn);
+            }
         }
 
         $this->logger?->debug('Certificate chain validation passed for subject: ' . $cn . ' (full chain validated)');
