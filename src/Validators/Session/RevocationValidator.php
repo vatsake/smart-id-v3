@@ -98,9 +98,6 @@ class RevocationValidator implements SessionValidatorInterface
 
         // Get issuer certificate
         $issuerCert = $this->chainValidator->getIssuerCertificate($pem);
-        if ($issuerCert === null) {
-            throw new CertificateChainException();
-        }
         $this->checkOcspStatus($ocspUrl, $pem, $issuerCert);
     }
 
@@ -264,9 +261,6 @@ class RevocationValidator implements SessionValidatorInterface
     private function validateCrlSignature(string $pem, string $signature, string $signedData, string $alg): void
     {
         $issuerCert = $this->chainValidator->getIssuerCertificate($pem);
-        if ($issuerCert === null) {
-            throw new CertificateChainException();
-        }
 
         $pubKey = openssl_pkey_get_public($issuerCert);
         $signature = substr($signature, 1); // Remove leading byte

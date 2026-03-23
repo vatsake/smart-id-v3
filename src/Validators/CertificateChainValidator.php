@@ -63,14 +63,13 @@ class CertificateChainValidator
     {
         /** @var X509 */
         $this->x509->loadX509($pem);
-        $cn = $this->x509->getDN(X509::DN_STRING);
 
-        $chain = $this->x509->getChain();
-
-        if (empty($chain)) {
-            $this->logger?->info('Certificate chain validation failed: no chain available for subject: ' . $cn);
-            throw new CertificateChainException($cn);
+        if ($this->x509->getCurrentCert() === false) {
+            throw new CertificateChainException('N/A');
         }
+
+        $cn = $this->x509->getDN(X509::DN_STRING);
+        $chain = $this->x509->getChain();
 
         if (!$this->x509->validateSignature()) {
             $this->logger?->info('Certificate chain validation failed for subject: ' . $cn);
@@ -88,13 +87,22 @@ class CertificateChainValidator
         $this->logger?->debug('Certificate chain validation passed for subject: ' . $cn . ' (full chain validated)');
     }
 
-    public function getIssuerCertificate(string $pem): ?string
+    /**
+     * @throws CertificateChainException if parent certificate is unknown
+     */
+    public function getIssuerCertificate(string $pem): string
     {
+        /** @var X509 */
         $this->x509->loadX509($pem);
+
+        if ($this->x509->getCurrentCert() === false) {
+            throw new CertificateChainException('N/A');
+        }
+
         /** @var X509 */
         $parent = $this->x509->getChain()[1] ?? null;
         if ($parent === null) {
-            return null;
+            throw new CertificateChainException($this->x509->getDN(X509::DN_STRING));
         }
         return $parent->saveX509($parent->getCurrentCert());
     }
