@@ -10,29 +10,28 @@ class SignatureData
         public readonly string $value,
         public readonly string $flowType,
         public readonly string $signatureAlgorithm,
-        public readonly string $signatureHashAlgorithm,
-        public readonly string $signatureMaskGenAlgorithm,
-        public readonly string $signatureMaskGenHashAlgorithm,
-        public readonly int $saltLength,
-        public readonly string $trailerField,
-    ) {
-    }
+        public readonly ?string $signatureHashAlgorithm,
+        public readonly ?string $signatureMaskGenAlgorithm,
+        public readonly ?string $signatureMaskGenHashAlgorithm,
+        public readonly ?int $saltLength,
+        public readonly ?string $trailerField,
+    ) {}
 
     public static function fromArray(array $data): self
     {
-        $params = $data['signatureAlgorithmParameters'];
-        $maskGenAlg = $params['maskGenAlgorithm'];
-        $maskGenParams = $maskGenAlg['parameters'];
+        $params = $data['signatureAlgorithmParameters'] ?? [];
+        $maskGenAlg = $params['maskGenAlgorithm'] ?? null;
+        $maskGenParams = $maskGenAlg['parameters'] ?? null;
 
         return new self(
             value: $data['value'],
             flowType: $data['flowType'],
             signatureAlgorithm: $data['signatureAlgorithm'],
-            signatureHashAlgorithm: $params['hashAlgorithm'],
-            signatureMaskGenAlgorithm: $maskGenAlg['algorithm'],
-            signatureMaskGenHashAlgorithm: $maskGenParams['hashAlgorithm'],
-            saltLength: $params['saltLength'],
-            trailerField: $params['trailerField'],
+            signatureHashAlgorithm: $params['hashAlgorithm'] ?? null,
+            signatureMaskGenAlgorithm: $maskGenAlg['algorithm'] ?? null,
+            signatureMaskGenHashAlgorithm: $maskGenParams['hashAlgorithm'] ?? null,
+            saltLength: $params['saltLength'] ?? null,
+            trailerField: $params['trailerField'] ?? null,
         );
     }
 }
