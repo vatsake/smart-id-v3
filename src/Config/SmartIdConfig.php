@@ -11,7 +11,7 @@ use Psr\Log\LoggerInterface;
 use Vatsake\SmartIdV3\Enums\SmartIdEnv;
 use Vatsake\SmartIdV3\Validators\CertificateChainValidator;
 
-final class SmartIdConfig
+class SmartIdConfig
 {
     private ClientInterface $httpClient;
 
