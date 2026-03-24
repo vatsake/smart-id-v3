@@ -1,6 +1,6 @@
 {
   "name": "vatsake/smart-id-v3",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "PHP Client Library for Smart ID v3 API",
   "keywords": [
     "php",
@@ -46,7 +46,7 @@
     }
   },
   "scripts": {
-    "test": "phpunit --testdox --coverage-html=coverage"
+    "test": "phpunit --testdox --coverage-html=coverage --do-not-report-useless-tests"
   },
   "minimum-stability": "stable",
   "prefer-stable": true,
